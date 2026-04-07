@@ -30,7 +30,8 @@
 	.carte-page {
 		display: flex;
 		gap: var(--spacing-lg);
-		height: calc(100dvh - 52px - var(--spacing-xl) * 2);
+		/* 52px header + 2 × spacing-xl padding du main */
+		height: calc(100dvh - 52px - 5rem);
 		min-height: 500px;
 	}
 
@@ -64,6 +65,8 @@
 	.map-area {
 		flex: 1;
 		min-width: 0;
+		min-height: 0;
+		height: 100%;
 	}
 
 	@media (max-width: 768px) {

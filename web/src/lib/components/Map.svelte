@@ -101,10 +101,10 @@
 
 		const stops = getColorStops(min, max);
 		map.setPaintProperty('communes-fill', 'fill-color', [
-			'case',
-			['==', ['get', 'value'], null],
-			'#1e1e24',
-			['interpolate', ['linear'], ['get', 'value'], ...stops.flat()]
+			'interpolate',
+			['linear'],
+			['coalesce', ['get', 'value'], min],
+			...stops.flat()
 		]);
 	}
 
@@ -143,8 +143,8 @@
 				type: 'fill',
 				source: 'communes',
 				paint: {
-					'fill-color': '#1e1e24',
-					'fill-opacity': 0.85
+					'fill-color': '#2a2a32',
+					'fill-opacity': 0.9
 				}
 			});
 			map!.addLayer({

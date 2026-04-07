@@ -29,6 +29,7 @@
 
 	main {
 		flex: 1;
+		min-height: 0;
 		padding-top: var(--spacing-xl);
 		padding-bottom: var(--spacing-xl);
 	}
