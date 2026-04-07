@@ -1,0 +1,91 @@
+# =============================================================================
+# VoteSocio — CI/CD
+# =============================================================================
+# - Tests Python (pipeline) + lint
+# - Build front-end SvelteKit
+# - Build images Docker
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # --- Tests Python ---
+  test-pipeline:
+    name: Tests pipeline Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check pipeline/ tests/
+          ruff format --check pipeline/ tests/
+
+      - name: Tests
+        run: python -m pytest tests/ -v
+
+  # --- Build front-end ---
+  build-web:
+    name: Build front-end SvelteKit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Installer les dépendances
+        working-directory: web
+        run: npm ci
+
+      - name: Type check
+        working-directory: web
+        run: npm run check
+
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: web/build/
+          retention-days: 7
+
+  # --- Build Docker images ---
+  build-docker:
+    name: Build images Docker
+    runs-on: ubuntu-latest
+    needs: [test-pipeline, build-web]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image front-end
+        run: docker build -t votesocio-web ./web
+
+      - name: Build image pipeline
+        run: docker build -t votesocio-pipeline -f Dockerfile.pipeline .

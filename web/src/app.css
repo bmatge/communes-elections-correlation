@@ -1,0 +1,102 @@
+/* =============================================================================
+   VoteSocio — Design system
+   Éditorial brut · typo massive · données vivantes
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+	/* Fond */
+	--color-bg: #0c0c0f;
+	--color-surface: #16161a;
+	--color-surface-raised: #1e1e24;
+	--color-border: #2a2a32;
+
+	/* Texte */
+	--color-text: #ececf1;
+	--color-text-muted: #72728a;
+	--color-text-dim: #45455a;
+
+	/* Accents politiques — vifs et assumés */
+	--color-gauche: #ff3b5c;
+	--color-centre: #ffbe0b;
+	--color-droite: #3a86ff;
+	--color-exd: #8338ec;
+	--color-divers: #72728a;
+
+	/* Accent UI */
+	--color-accent: #ffbe0b;
+	--color-accent-text: #0c0c0f;
+
+	/* Layout */
+	--max-width: 1120px;
+	--spacing-xs: 0.25rem;
+	--spacing-sm: 0.5rem;
+	--spacing-md: 1rem;
+	--spacing-lg: 1.5rem;
+	--spacing-xl: 3rem;
+	--spacing-2xl: 5rem;
+
+	/* Type */
+	--font-display: 'Instrument Serif', Georgia, serif;
+	--font-sans: 'Space Grotesk', system-ui, sans-serif;
+	--font-mono: 'Space Mono', ui-monospace, monospace;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html {
+	font-family: var(--font-sans);
+	font-size: 16px;
+	line-height: 1.5;
+	color: var(--color-text);
+	background: var(--color-bg);
+	-webkit-font-smoothing: antialiased;
+}
+
+body {
+	min-height: 100dvh;
+}
+
+::selection {
+	background: var(--color-accent);
+	color: var(--color-accent-text);
+}
+
+a {
+	color: var(--color-accent);
+	text-decoration: none;
+	transition: color 0.1s;
+}
+
+a:hover {
+	color: var(--color-text);
+}
+
+/* Utility */
+.container {
+	max-width: var(--max-width);
+	margin: 0 auto;
+	padding: 0 var(--spacing-md);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+	width: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: 3px;
+}

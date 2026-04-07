@@ -1,0 +1,1354 @@
+# =============================================================================
+# VoteSocio — Registry des sources de données
+# =============================================================================
+# Chaque bloc décrit une source : téléchargement, colonnes, variables à extraire.
+# Ajouter une source = ajouter un bloc ici. Pas de code sauf transformer custom.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Mapping des familles politiques (utilisé par le transformer élections)
+# -----------------------------------------------------------------------------
+familles_politiques:
+  # Municipales (nuances L*)
+  # Législatives 2024 (nuances courtes)
+  # Législatives 2022 (nuances courtes, système différent)
+  # Européennes 2024 (nuances L*)
+  # Régionales 2021 (nuances L*)
+  # Départementales 2021 (nuances BC-*)
+  gauche:
+    - LFI
+    - LDVG
+    - LVEC
+    - LSOC
+    - LUG
+    - LEXG
+    - LCOM
+    - LRDG
+    - LUGE        # Régionales — Union Gauche Écolo
+    - LUCG        # Régionales — Union Centre-Gauche
+    # Législatives 2024
+    - EXG
+    - UG
+    - FI
+    - SOC
+    - VEC
+    - RDG
+    - COM
+    - DVG
+    # Législatives 2022
+    - DXG
+    - NUP
+    - ECO
+    # Départementales 2021
+    - BC-DVG
+    - BC-UGE
+    - BC-UG
+    - BC-ECO
+    - BC-COM
+    - BC-SOC
+    - BC-FI
+    - BC-EXG
+    - BC-RDG
+    - BC-UCG
+  centre:
+    - LREM
+    - LCNTRE
+    - LMDM
+    - LHORI
+    - LDVC
+    - LENS        # Européennes — Ensemble
+    - LUC         # Régionales — Union Centre
+    - LUCD        # Régionales — Union Centre-Droite
+    # Législatives 2024
+    - ENS
+    - DVC
+    - HOR
+    - UDI
+    # Législatives 2022
+    # ENS already listed
+    # Départementales 2021
+    - BC-REM
+    - BC-DVC
+    - BC-UDI
+    - BC-MDM
+    - BC-UC
+  droite:
+    - LREP
+    - LDVD
+    - LLR
+    - LUD
+    # Législatives 2024
+    - LR
+    - DVD
+    - REG
+    # Législatives 2022
+    # LR already listed
+    # Départementales 2021
+    - BC-DVD
+    - BC-LR
+    - BC-UD
+  extreme_droite:
+    - LRN
+    - LREC
+    - LEXD
+    - LUDI        # Régionales — Union Droite (inclut ED dans ce contexte)
+    # Législatives 2024
+    - RN
+    - REC
+    - EXD
+    - UXD
+    # Législatives 2022
+    - DXD
+    # Départementales 2021
+    - BC-RN
+    - BC-EXD
+    - BC-UXD
+  sans_etiquette:
+    - LSE
+    - LDIV
+    - LDSV        # Régionales — Divers / Souverainiste
+    - LREG        # Régionales — Régionaliste
+    # Législatives 2024
+    - DIV
+    - DSV
+    - REG
+    # Législatives 2022
+    - DSV
+    # Départementales 2021
+    - BC-DIV
+    - BC-DSV
+    - BC-REG
+    - BC-GJ
+
+# =============================================================================
+# COUCHE 1 — NOYAU
+# =============================================================================
+
+# ---------------------
+# ÉLECTIONS
+# ---------------------
+
+sources:
+
+  # --- Élections agrégées (toutes élections, format unifié) ---
+  # Ce dataset contient TOUTES les élections. On l'utilise pour :
+  # - Municipales 2026 T1/T2 et 2020 T1/T2 (cible + comparaison)
+  # - Présidentielles 2022 T1 et 2017 T1 (référence nationale)
+  # - Législatives 2024 T1 et 2022 T1 (dissolution + cycle normal)
+  # - Européennes 2024 T1 (marqueur idéologique)
+  # - Régionales 2021 T1 (échelon intermédiaire)
+  # - Départementales 2021 T1 (échelon local binômes)
+  - id: elections_agregees_general
+    name: "Élections agrégées — résultats généraux"
+    category: electoral
+    producer: data.gouv.fr
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://object.files.data.gouv.fr/data-pipeline-open/elections/general_results.parquet"
+      format: parquet
+    join_key: code_commune
+    filter:
+      id_election:
+        - "2026_muni_t1"
+        - "2026_muni_t2"
+        - "2020_muni_t1"
+        - "2020_muni_t2"
+        - "2022_pres_t1"
+        - "2017_pres_t1"
+        - "2024_legi_t1"
+        - "2022_legi_t1"
+        - "2024_euro_t1"
+        - "2021_regi_t1"
+        - "2021_dpmt_t1"
+    notes: >
+      Contient inscrits, abstentions, votants, exprimés par bureau de vote.
+      À agréger par code_commune. Le filtre multi-élections permet de construire
+      des trajectoires électorales et de comparer local vs national.
+    transformer: elections
+
+  - id: elections_agregees_candidats
+    name: "Élections agrégées — résultats par candidat/liste"
+    category: electoral
+    producer: data.gouv.fr
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://object.files.data.gouv.fr/data-pipeline-open/elections/candidats_results.parquet"
+      format: parquet
+    join_key: code_commune
+    filter:
+      id_election:
+        - "2026_muni_t1"
+        - "2026_muni_t2"
+        - "2020_muni_t1"
+        - "2020_muni_t2"
+        - "2022_pres_t1"
+        - "2017_pres_t1"
+        - "2024_legi_t1"
+        - "2022_legi_t1"
+        - "2024_euro_t1"
+        - "2021_regi_t1"
+        - "2021_dpmt_t1"
+    notes: >
+      Contient voix, nuance politique, % par liste et bureau de vote.
+      À agréger par code_commune + nuance → familles politiques.
+      Couvre ~35K communes pour tous les scrutins nationaux.
+    transformer: elections
+
+  - id: nuances_politiques
+    name: "Dictionnaire des nuances politiques (circulaire fév. 2026)"
+    category: electoral
+    producer: data.gouv.fr
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/donnees-des-elections-agregees/20260324-132009/nuances.csv"
+      format: csv
+    notes: Table de référence, pas de jointure directe.
+
+  # --- Résultats officiels municipales 2026 (Ministère Intérieur) ---
+  - id: muni_2026_t1_communes
+    name: "Municipales 2026 T1 — résultats par commune"
+    category: electoral
+    producer: Ministère de l'Intérieur
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-premier-tour/20260320-164339/municipales-2026-resultats-communes-2026-03-20.csv"
+      format: csv
+    join_key: code_commune
+
+  - id: muni_2026_t1_candidats
+    name: "Municipales 2026 T1 — candidats élus"
+    category: electoral
+    producer: Ministère de l'Intérieur
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-premier-tour/20260320-164100/municipales-2026-candidats-elus-france-entiere-tour-1-2026-03-20.csv"
+      format: csv
+    join_key: code_commune
+
+  - id: muni_2026_t2_communes
+    name: "Municipales 2026 T2 — résultats par commune"
+    category: electoral
+    producer: Ministère de l'Intérieur
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-scond-tour/20260323-180124/municipales-2026-resultats-communes-2026-03-23-16h14.csv"
+      format: csv
+    join_key: code_commune
+
+  - id: muni_2026_t2_candidats
+    name: "Municipales 2026 T2 — candidats élus"
+    category: electoral
+    producer: Ministère de l'Intérieur
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-scond-tour/20260323-180122/municipales-2026-candidats-elus-france-entiere-tour-2-2026-03-23.csv"
+      format: csv
+    join_key: code_commune
+
+  - id: muni_2026_listes_t1
+    name: "Municipales 2026 — listes candidates T1"
+    category: electoral
+    producer: Ministère de l'Intérieur
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/elections-municipales-2026-listes-candidates-au-premier-tour/20260313-152615/municipales-2026-candidatures-france-entiere-tour-1-2026-03-13.csv"
+      format: csv
+    join_key: code_commune
+
+  - id: muni_2026_maires_sortants
+    name: "Municipales 2026 — maires sortants"
+    category: electoral
+    producer: Ministère de l'Intérieur
+    year: 2026
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/elections-municipales-2026-maires-et-conseillers-municipaux-sortants/20260302-101708/mun2026-maires-sortants-20260227.csv"
+      format: csv
+    join_key: code_commune
+
+  # Présidentielle 2022 T1 : intégrée dans elections_agregees (filter 2022_pres_t1)
+  # Plus besoin du XLSX officiel, le Parquet agrégé est plus simple à exploiter.
+
+  # ---------------------
+  # REVENUS & INÉGALITÉS
+  # ---------------------
+
+  - id: filosofi_2021
+    name: "Revenus et pauvreté — FILOSOFI 2021"
+    category: revenus
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/7756729"
+      filename: "filosofi_2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: filosofi
+    variables:
+      - id: revenu_median
+        source_col: MED21
+        name: "Revenu médian par UC"
+        type: numeric
+        unit: "€"
+
+      - id: taux_pauvrete
+        source_col: TP6021
+        name: "Taux de pauvreté (seuil 60%)"
+        type: numeric
+        unit: "%"
+
+      - id: ratio_interdecile
+        source_col: GI21
+        name: "Ratio interdécile D9/D1"
+        type: numeric
+        unit: ""
+
+      - id: d1
+        source_col: D121
+        name: "1er décile de revenu"
+        type: numeric
+        unit: "€"
+
+      - id: d9
+        source_col: D921
+        name: "9e décile de revenu"
+        type: numeric
+        unit: "€"
+
+  # ---------------------
+  # RECENSEMENT — LOGEMENT
+  # ---------------------
+
+  - id: rp_logement_2021
+    name: "RP 2021 — Logement"
+    category: logement
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/7632558"
+      filename: "rp_logement_2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: rp_logement
+    # TODO: retélécharger base IC pour HLM, rés.sec, vacants
+    variables:
+      - id: rp_total
+        source_col: P21_RP
+        name: "Résidences principales — total"
+        type: numeric
+        unit: ""
+
+      - id: rp_prop
+        source_col: P21_RP_PROP
+        name: "Résidences principales — propriétaires"
+        type: numeric
+        unit: ""
+
+      - id: rp_loc
+        source_col: P21_RP_LOC
+        name: "Résidences principales — locataires"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: pct_proprietaires
+        formula: "rp_prop / rp_total * 100"
+        name: "Part des propriétaires"
+        type: numeric
+        unit: "%"
+        category: logement
+
+  # ---------------------
+  # RECENSEMENT — ACTIVITÉ & EMPLOI
+  # ---------------------
+
+  - id: rp_activite_2021
+    name: "RP 2021 — Activité et emploi"
+    category: emploi
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/7632646"
+      filename: "rp_activite_2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: rp_activite
+    # TODO: retélécharger base IC activité pour CS1-CS6
+    variables:
+      - id: chomeurs_15_64
+        source_col: P21_CHOM1564
+        name: "Chômeurs 15-64 ans"
+        type: numeric
+        unit: ""
+
+      - id: actifs_15_64
+        source_col: P21_ACT1564
+        name: "Actifs 15-64 ans"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: taux_chomage
+        formula: "chomeurs_15_64 / actifs_15_64 * 100"
+        name: "Taux de chômage"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+  # ---------------------
+  # RECENSEMENT — DIPLÔMES
+  # ---------------------
+
+  - id: rp_diplomes_2021
+    name: "RP 2021 — Diplômes et formation"
+    category: education
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/7632715"
+      filename: "rp_diplomes_2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: rp_diplomes
+    variables:
+      - id: pop_15plus_scol
+        source_col: P21_NSCOL15P
+        name: "Population 15+ non scolarisée"
+        type: numeric
+        unit: ""
+
+      - id: sans_diplome
+        source_col: P21_NSCOL15P_NODIP
+        name: "Sans diplôme (15+)"
+        type: numeric
+        unit: ""
+
+      - id: diplome_capbep
+        source_col: P21_NSCOL15P_CAPBEP
+        name: "CAP-BEP"
+        type: numeric
+        unit: ""
+
+      - id: diplome_bac
+        source_col: P21_NSCOL15P_BAC
+        name: "Baccalauréat"
+        type: numeric
+        unit: ""
+
+      - id: diplome_sup2
+        source_col: P21_NSCOL15P_SUP2
+        name: "Bac+2"
+        type: numeric
+        unit: ""
+
+      - id: diplome_sup34
+        source_col: P21_NSCOL15P_SUP34
+        name: "Bac+3/4"
+        type: numeric
+        unit: ""
+
+      - id: diplome_sup5
+        source_col: P21_NSCOL15P_SUP5
+        name: "Bac+5 et plus"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: pct_diplomes_sup
+        formula: "(diplome_sup2 + diplome_sup34 + diplome_sup5) / pop_15plus_scol * 100"
+        name: "Part des diplômés du supérieur"
+        type: numeric
+        unit: "%"
+        category: education
+
+      - id: pct_sans_diplome
+        formula: "sans_diplome / pop_15plus_scol * 100"
+        name: "Part des sans diplôme"
+        type: numeric
+        unit: "%"
+        category: education
+
+  # ---------------------
+  # RECENSEMENT — POPULATION
+  # ---------------------
+
+  - id: rp_population_2022
+    name: "RP 2022 — Évolution et structure de la population"
+    category: territoire
+    producer: INSEE
+    year: 2022
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/7631458"
+      filename: "rp_population_2022.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: rp_population
+    # TODO: superficie à calculer depuis contours GeoJSON
+    variables:
+      - id: population
+        source_col: P22_POP
+        name: "Population totale"
+        type: numeric
+        unit: "hab."
+
+      - id: pop_0014
+        source_col: P22_POP0014
+        name: "Population 0-14 ans"
+        type: numeric
+        unit: ""
+
+      - id: pop_6074
+        source_col: P22_POP6074
+        name: "Population 60-74 ans"
+        type: numeric
+        unit: ""
+
+      - id: pop_75plus
+        source_col: P22_POP75P
+        name: "Population 75 ans et plus"
+        type: numeric
+        unit: ""
+
+      - id: pop_etrangere
+        source_col: P22_POP_ETR
+        name: "Population étrangère"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: pct_60plus
+        formula: "(pop_6074 + pop_75plus) / population * 100"
+        name: "Part des 60 ans et plus"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: pct_etrangers
+        formula: "pop_etrangere / population * 100"
+        name: "Part de la population étrangère"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: pct_jeunes
+        formula: "pop_0014 / population * 100"
+        name: "Part des moins de 15 ans"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+  # ---------------------
+  # BASES IC (Indicateurs Communaux) — IRIS agrégés
+  # Fichiers téléchargés manuellement depuis insee.fr/statistiques/8268*
+  # Contiennent les variables absentes des tableaux détaillés (CSP, HLM, etc.)
+  # ---------------------
+
+  - id: ic_population_2021
+    name: "Base IC 2021 — Population (IRIS agrégé)"
+    category: territoire
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/8268806"
+      filename: "base-ic-population-2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: ic_population
+    variables:
+      - id: ic_pop_15plus
+        source_col: C21_POP15P
+        name: "Population 15 ans et plus"
+        type: numeric
+        unit: ""
+
+      - id: cs_agriculteurs
+        source_col: C21_POP15P_CS1
+        name: "Agriculteurs exploitants"
+        type: numeric
+        unit: ""
+
+      - id: cs_artisans
+        source_col: C21_POP15P_CS2
+        name: "Artisans, commerçants, chefs d'entreprise"
+        type: numeric
+        unit: ""
+
+      - id: cs_cadres
+        source_col: C21_POP15P_CS3
+        name: "Cadres et professions intellectuelles supérieures"
+        type: numeric
+        unit: ""
+
+      - id: cs_prof_inter
+        source_col: C21_POP15P_CS4
+        name: "Professions intermédiaires"
+        type: numeric
+        unit: ""
+
+      - id: cs_employes
+        source_col: C21_POP15P_CS5
+        name: "Employés"
+        type: numeric
+        unit: ""
+
+      - id: cs_ouvriers
+        source_col: C21_POP15P_CS6
+        name: "Ouvriers"
+        type: numeric
+        unit: ""
+
+      - id: cs_retraites
+        source_col: C21_POP15P_CS7
+        name: "Retraités"
+        type: numeric
+        unit: ""
+
+      - id: cs_autres_inactifs
+        source_col: C21_POP15P_CS8
+        name: "Autres personnes sans activité professionnelle"
+        type: numeric
+        unit: ""
+
+      - id: pop_immigree
+        source_col: P21_POP_IMM
+        name: "Population immigrée"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: pct_cadres
+        formula: "cs_cadres / ic_pop_15plus * 100"
+        name: "Part des cadres"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_ouvriers
+        formula: "cs_ouvriers / ic_pop_15plus * 100"
+        name: "Part des ouvriers"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_agriculteurs
+        formula: "cs_agriculteurs / ic_pop_15plus * 100"
+        name: "Part des agriculteurs"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_employes
+        formula: "cs_employes / ic_pop_15plus * 100"
+        name: "Part des employés"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_retraites
+        formula: "cs_retraites / ic_pop_15plus * 100"
+        name: "Part des retraités"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: pct_immigres
+        formula: "pop_immigree / ic_pop_15plus * 100"
+        name: "Part de la population immigrée"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+  - id: ic_logement_2021
+    name: "Base IC 2021 — Logement (IRIS agrégé)"
+    category: logement
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/8268838"
+      filename: "base-ic-logement-2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: ic_logement
+    variables:
+      - id: rp_hlm
+        source_col: P21_RP_LOCHLMV
+        name: "Résidences principales — HLM"
+        type: numeric
+        unit: ""
+
+      - id: res_secondaires
+        source_col: P21_RSECOCC
+        name: "Résidences secondaires et logements occasionnels"
+        type: numeric
+        unit: ""
+
+      - id: logements_vacants
+        source_col: P21_LOGVAC
+        name: "Logements vacants"
+        type: numeric
+        unit: ""
+
+      - id: ic_logements_total
+        source_col: P21_LOG
+        name: "Logements totaux"
+        type: numeric
+        unit: ""
+
+      - id: ic_rp_total
+        source_col: P21_RP
+        name: "Résidences principales (IC)"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: pct_hlm
+        formula: "rp_hlm / ic_rp_total * 100"
+        name: "Part des HLM"
+        type: numeric
+        unit: "%"
+        category: logement
+
+      - id: pct_res_secondaires
+        formula: "res_secondaires / ic_logements_total * 100"
+        name: "Part des résidences secondaires"
+        type: numeric
+        unit: "%"
+        category: logement
+
+      - id: pct_logements_vacants
+        formula: "logements_vacants / ic_logements_total * 100"
+        name: "Part des logements vacants"
+        type: numeric
+        unit: "%"
+        category: logement
+
+  - id: ic_activite_2021
+    name: "Base IC 2021 — Activité des résidents (IRIS agrégé)"
+    category: emploi
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/8268843"
+      filename: "base-ic-activite-2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: ic_activite
+    variables:
+      - id: ic_pop_1564
+        source_col: P21_POP1564
+        name: "Population 15-64 ans"
+        type: numeric
+        unit: ""
+
+      - id: ic_act_1564
+        source_col: P21_ACT1564
+        name: "Actifs 15-64 ans (IC)"
+        type: numeric
+        unit: ""
+
+      - id: ic_actocc_1564
+        source_col: P21_ACTOCC1564
+        name: "Actifs occupés 15-64 ans"
+        type: numeric
+        unit: ""
+
+      - id: ic_chom_1564
+        source_col: P21_CHOM1564
+        name: "Chômeurs 15-64 ans (IC)"
+        type: numeric
+        unit: ""
+
+      - id: ic_actocc_tp
+        source_col: P21_ACTOCC15P_TP
+        name: "Actifs occupés à temps partiel"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: taux_activite
+        formula: "ic_act_1564 / ic_pop_1564 * 100"
+        name: "Taux d'activité 15-64 ans"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+  # ---------------------
+  # CARTE DES LOYERS
+  # ---------------------
+
+  - id: loyers_2025
+    name: "Carte des loyers — appartements 2025"
+    category: logement
+    producer: Ministère du Logement
+    year: 2025
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/carte-des-loyers-indicateurs-de-loyers-dannonce-par-commune-en-2025/20251211-145010/pred-app-mef-dhup.csv"
+      format: csv
+      encoding: latin-1
+      separator: ";"
+      decimal: ","
+    join_key: INSEE_C
+    variables:
+      - id: loyer_median
+        source_col: loypredm2
+        name: "Loyer médian au m² (appartements)"
+        type: numeric
+        unit: "€/m²"
+
+  # ---------------------
+  # GRILLE DE DENSITÉ (DEGURBA)
+  # ---------------------
+
+  - id: grille_densite
+    name: "Grille communale de densité — DEGURBA"
+    category: territoire
+    producer: INSEE
+    year: 2023
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/information/2114627"
+      filename: "grille_densite.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: grille_densite
+    variables:
+      - id: type_territoire
+        source_col: DEGURBA
+        name: "Type de territoire"
+        type: categorical
+        categories:
+          1: "Urbain dense"
+          2: "Urbain intermédiaire"
+          3: "Rural sous influence urbaine"
+          4: "Rural autonome"
+
+# =============================================================================
+# COUCHE 2 — ENRICHISSEMENT
+# =============================================================================
+
+  # ---------------------
+  # CONTOURS GÉOGRAPHIQUES
+  # ---------------------
+
+  - id: contours_communes
+    name: "Contours administratifs des communes"
+    category: territoire
+    producer: data.gouv.fr
+    year: 2024
+    download:
+      type: geojson
+      url: "https://www.data.gouv.fr/datasets/contours-administratifs"
+      dataset_id: "683424e996857155175d4f68"
+    join_key: code
+    notes: >
+      Dataset avec de nombreux formats. Privilégier le GeoJSON communes simplifié.
+      Le téléchargement exact sera déterminé à l'exploration des ressources.
+
+  # ---------------------
+  # DÉLINQUANCE
+  # ---------------------
+
+  - id: delinquance_communale
+    name: "Délinquance enregistrée par commune (2025)"
+    category: securite
+    producer: Ministère de l'Intérieur
+    year: 2025
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/bases-statistiques-communale-departementale-et-regionale-de-la-delinquance-enregistree-par-la-police-et-la-gendarmerie-nationales/20260326-124228/donnee-comm-data.gouv-parquet-2025-geographie2025-produit-le2026-02-03.parquet"
+      format: parquet
+    join_key: CODGEO_2025
+    transformer: delinquance
+    notes: >
+      Données par catégorie d'infraction. Le transformer agrège en taux global
+      et par grandes catégories (atteintes aux biens, aux personnes, etc.).
+
+  # ---------------------
+  # PRIX IMMOBILIER (DVF)
+  # ---------------------
+
+  - id: dvf_stats
+    name: "Statistiques DVF — prix immobilier par commune"
+    category: logement
+    producer: data.gouv.fr
+    year: 2024
+    download:
+      type: direct_url
+      url: "https://object.files.data.gouv.fr/data-pipeline-open/dvf/stats_whole_period.csv"
+      format: csv
+    join_key: code_commune
+    transformer: dvf
+    notes: >
+      Prix médian au m² par commune sur l'ensemble de la période DVF.
+      Le transformer extrait le prix médian récent (dernières années).
+
+  # ---------------------
+  # INTERCOMMUNALITÉ (EPCI)
+  # ---------------------
+
+  - id: epci_communes
+    name: "Périmètre des EPCI à fiscalité propre"
+    category: territoire
+    producer: DGCL / BANATIC
+    year: 2025
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/base-nationale-sur-les-intercommunalites/20250203-144053/perimetre-epci-a-fp.csv"
+      format: csv
+      encoding: utf-8
+      separator: ";"
+    join_key: ptmb_codgeo
+    variables:
+      - id: code_epci
+        source_col: epci_siren
+        name: "Code SIREN de l'EPCI"
+        type: categorical
+
+      - id: libelle_epci
+        source_col: epci_denomination
+        name: "Nom de l'EPCI"
+        type: categorical
+
+  # ---------------------
+  # QPV (flag)
+  # ---------------------
+
+  - id: qpv
+    name: "Quartiers prioritaires de la politique de la ville 2024"
+    category: territoire
+    producer: ANCT
+    year: 2024
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/quartiers-prioritaires-de-la-politique-de-la-ville-qpv/20260116-110350/listeqp2024-cog2024.csv"
+      format: csv
+    join_key: code_commune
+    transformer: qpv
+    notes: >
+      Le transformer extrait un flag binaire (commune_avec_qpv) et le nombre de QPV par commune.
+
+  # ---------------------
+  # ZRR (flag)
+  # ---------------------
+
+  - id: zrr
+    name: "Zones de Revitalisation Rurale"
+    category: territoire
+    producer: ANCT
+    year: 2021
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/zones-de-revitalisation-rurale-zrr/20210907-124104/diffusion-zonages-zrr-cog2021.xls"
+      format: xls
+    join_key: CODGEO
+    transformer: zrr
+    notes: >
+      Flag binaire : commune en ZRR oui/non.
+
+  # ---------------------
+  # BPE (Base Permanente des Équipements)
+  # ---------------------
+
+  - id: bpe_2021
+    name: "Base permanente des équipements 2024"
+    category: vie_locale
+    producer: INSEE
+    year: 2024
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/8217537"
+      filename: "bpe_2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: DEPCOM
+    transformer: bpe
+    notes: >
+      Un enregistrement par équipement. Le transformer agrège par commune :
+      nb_equipements_total, nb_gares, nb_stations_service, nb_medecins,
+      nb_ecoles, nb_commerces, etc. rapportés pour 1000 habitants.
+
+  # ---------------------
+  # IPS — ÉCOLES
+  # ---------------------
+
+  - id: ips_ecoles
+    name: "Indice de Position Sociale — écoles (2016-2021)"
+    category: education
+    producer: Ministère de l'Éducation nationale
+    year: 2021
+    download:
+      type: direct_url
+      url: "https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-ips_ecoles_v2/exports/parquet"
+      format: parquet
+    join_key: code_commune
+    transformer: ips
+    notes: >
+      Un enregistrement par école. Le transformer calcule l'IPS moyen par commune
+      (moyenne pondérée par effectifs si disponible).
+
+  # ---------------------
+  # IPS — COLLÈGES
+  # ---------------------
+
+  - id: ips_colleges
+    name: "Indice de Position Sociale — collèges (2016-2021)"
+    category: education
+    producer: Ministère de l'Éducation nationale
+    year: 2021
+    download:
+      type: direct_url
+      url: "https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-ips_colleges/exports/parquet"
+      format: parquet
+    join_key: code_commune
+    transformer: ips
+    notes: >
+      Un enregistrement par collège. Même transformer que ips_ecoles.
+
+  # ---------------------
+  # ANNUAIRE ÉDUCATION
+  # ---------------------
+
+  - id: annuaire_education
+    name: "Annuaire de l'éducation"
+    category: education
+    producer: Ministère de l'Éducation nationale
+    year: 2024
+    download:
+      type: direct_url
+      url: "https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/exports/parquet"
+      format: parquet
+    join_key: code_commune
+    transformer: annuaire_education
+    notes: >
+      Le transformer compte par commune : nb_ecoles, nb_colleges, nb_lycees.
+
+  # ---------------------
+  # RNA — ASSOCIATIONS
+  # ---------------------
+
+  - id: rna
+    name: "Répertoire National des Associations (agrégé)"
+    category: vie_locale
+    producer: Ministère de l'Intérieur
+    year: 2025
+    download:
+      type: direct_url
+      url: "https://object.files.data.gouv.fr/data-pipeline-open/rna/import.parquet"
+      format: parquet
+    join_key: code_commune
+    transformer: rna
+    notes: >
+      ~1.6M associations. Le transformer compte le nombre d'associations par commune
+      et calcule la densité associative (nb / 1000 hab).
+
+  # ---------------------
+  # APL — ACCÈS AUX SOINS
+  # ---------------------
+
+  - id: apl_medecins
+    name: "Accessibilité Potentielle Localisée — médecins généralistes"
+    category: sante
+    producer: DREES
+    year: 2022
+    download:
+      type: direct_url
+      url: "https://data.drees.solidarites-sante.gouv.fr/api/v2/catalog/datasets/530_l-accessibilite-potentielle-localisee-apl/attachments/indicateur_d_accessibilite_potentielle_localisee_apl_aux_medecins_generalistes_xlsx"
+      format: xlsx
+    join_key: code_commune
+    transformer: apl
+    notes: >
+      APL aux médecins généralistes par commune.
+      Indicateur en nombre de consultations accessibles par an pour 100 000 habitants.
+
+# =============================================================================
+# COUCHE 3 — DELTA V2 (trajectoires, agriculture, accessibilité, fiscalité)
+# =============================================================================
+
+  # ---------------------
+  # TRAJECTOIRE ÉLECTORALE
+  # ---------------------
+  # Municipales 2020 et Présidentielle 2017 sont déjà dans le dataset agrégé
+  # (elections_agregees_general / elections_agregees_candidats) via les filtres
+  # id_election = 2020_muni_t1, 2017_pres_t1, etc.
+  # Pas de source supplémentaire à télécharger.
+
+  # ---------------------
+  # RECENSEMENT AGRICOLE 2020
+  # ---------------------
+
+  - id: recensement_agricole_2020
+    name: "Recensement agricole 2020 — données communales"
+    category: emploi
+    producer: Agreste (SSP / Ministère de l'Agriculture)
+    year: 2020
+    download:
+      type: custom
+      url: "https://agreste.agriculture.gouv.fr/agreste-web/"
+      notes: >
+        Téléchargement via l'interface Agreste. Nécessite un downloader custom
+        ou un téléchargement manuel. Fichiers communaux disponibles sur demande
+        ou via les tableaux pré-formatés.
+    join_key: CODGEO
+    transformer: recensement_agricole
+    variables:
+      - id: sau_moyenne
+        source_col: SAU_MOY
+        name: "SAU moyenne par exploitation"
+        type: numeric
+        unit: "ha"
+
+      - id: pct_bio
+        source_col: PCT_BIO
+        name: "Part des exploitations en agriculture biologique"
+        type: numeric
+        unit: "%"
+
+      - id: orientation_otex
+        source_col: OTEX_DOM
+        name: "Orientation technico-économique dominante"
+        type: categorical
+        categories:
+          1: "Grandes cultures"
+          2: "Maraîchage/horticulture"
+          3: "Viticulture"
+          4: "Fruits et cultures permanentes"
+          5: "Élevage bovins lait"
+          6: "Élevage bovins viande"
+          7: "Élevage mixte"
+          8: "Élevage granivores"
+          9: "Polyculture-polyélevage"
+    notes: >
+      Caveat : données parfois agrégées ou masquées pour les communes à faible
+      densité agricole (secret statistique). Environ 20 000 communes couvertes.
+
+  # ---------------------
+  # ACCESSIBILITÉ AUX SERVICES (INSEE)
+  # ---------------------
+
+  - id: accessibilite_services
+    name: "Indicateurs d'accès aux services — INSEE"
+    category: vie_locale
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/3568812"
+      filename: "indic-acces-services.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: accessibilite
+    notes: >
+      Temps d'accès médian aux équipements courants (médecin, pharmacie, école,
+      gare, supermarché...). Proxy direct du sentiment d'abandon territorial.
+      Distinct de la densité : un chef-lieu de canton rural peut être bien équipé.
+
+  # ---------------------
+  # MIGRATIONS RÉSIDENTIELLES (RP 2021)
+  # ---------------------
+
+  - id: rp_mobilite_2021
+    name: "RP 2021 — Mobilités résidentielles"
+    category: territoire
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/7632715"
+      filename: "rp_mobilite_2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: rp_mobilite
+    notes: >
+      Fichier de flux résidentiels (CODGEO → DCRAN). Le transformer calcule
+      pct_sedentaire et pct_arrivee_5ans par commune (auto-détectées par le loader).
+      Proxy de gentrification (villes) ou repeuplement par néoruraux (campagne).
+
+  # ---------------------
+  # VULNÉRABILITÉ TERRITORIALE (ANCT)
+  # ---------------------
+
+  - id: vulnerabilite_anct
+    name: "Indice de vulnérabilité territoriale"
+    category: territoire
+    producer: ANCT
+    year: 2023
+    download:
+      type: custom
+      url: "https://agence-cohesion-territoires.gouv.fr/"
+      notes: >
+        Indicateur composite (fragilité éco + démographique + accès aux services).
+        Disponibilité et format exact à vérifier. Peut nécessiter un téléchargement
+        manuel ou une extraction depuis l'Observatoire des territoires.
+    join_key: code_commune
+    transformer: vulnerabilite
+    notes: >
+      Variable synthétique alternative à l'ACP. Utile comme benchmark :
+      si notre score d'anomalie corrèle avec cet indice, c'est bon signe.
+      Granularité commune ou EPCI selon la version disponible.
+
+  # ---------------------
+  # POTENTIEL FISCAL & TAXE FONCIÈRE (DGCL)
+  # ---------------------
+
+  - id: fiscalite_locale
+    name: "Fiscalité directe locale — potentiel fiscal et taux"
+    category: revenus
+    producer: DGCL
+    year: 2024
+    download:
+      type: custom
+      url: "https://www.collectivites-locales.gouv.fr/finances-locales"
+      notes: >
+        Données de fiscalité locale par commune. Format et URL exacte
+        à déterminer (fichiers Excel mis à jour annuellement par la DGCL).
+    join_key: code_commune
+    transformer: fiscalite
+    variables:
+      - id: potentiel_fiscal_par_hab
+        source_col: POT_FISC_HAB
+        name: "Potentiel fiscal par habitant"
+        type: numeric
+        unit: "€/hab."
+
+      - id: taux_taxe_fonciere
+        source_col: TAUX_TFB
+        name: "Taux de taxe foncière sur le bâti"
+        type: numeric
+        unit: "%"
+    notes: >
+      Mesure la richesse de la collectivité (distincte du revenu des ménages).
+      Pertinent pour les communes rurales où la fiscalité locale est très visible.
+
+# =============================================================================
+# COUCHE 4 — OPTIONNEL (usage spécifique)
+# =============================================================================
+
+  # ---------------------
+  # FIBRE OPTIQUE
+  # ---------------------
+
+  - id: fibre_thd
+    name: "Couverture fibre optique — France Très Haut Débit"
+    category: transport
+    producer: ANCT
+    year: 2025
+    tier: optional
+    download:
+      type: direct_url
+      url: "https://static.data.gouv.fr/resources/indicateur-france-tres-haut-debit-etat-des-deploiements-de-la-fibre-optique-et-decommissionnement-du-cuivre/20251216-132516/indicateur-france-tres-haut-debit-ftth-cu.csv"
+      format: csv
+    join_key: code_commune
+    transformer: fibre
+    notes: >
+      Peu prédictif une fois le type de territoire contrôlé (urbain/rural).
+      À conserver uniquement pour une analyse spécifique fracture numérique × abstention.
+
+  # ---------------------
+  # CONTOURS GÉOGRAPHIQUES
+  # ---------------------
+  # Source : data.gouv.fr « Contours administratifs » (Admin Express simplifié)
+  # GeoJSON des contours à plusieurs résolutions.
+  # Communes : 50m pour zoom, 1000m pour vue France entière.
+  # Départements et régions : 50m (léger, suffisant).
+  # Le transformer extrait code, nom et geometry (GeoJSON string) + centroïde.
+
+  - id: geo_communes_50m
+    name: "Contours communes 2025 — 50m"
+    category: territoire
+    producer: data.gouv.fr / IGN
+    year: 2025
+    tier: 2
+    download:
+      type: geojson
+      url: "https://object.data.gouv.fr/contours-administratifs/2025/geojson/communes-50m.geojson.gz"
+      format: geojson.gz
+      filename: geo_communes_50m.geojson.gz
+    target_table: geo_communes
+    transformer: geo_contours
+    notes: >
+      Résolution 50m : bon compromis poids/précision pour la carte zoomée.
+      ~35 000 features, environ 80 Mo décompressé.
+
+  - id: geo_communes_1000m
+    name: "Contours communes 2025 — 1000m"
+    category: territoire
+    producer: data.gouv.fr / IGN
+    year: 2025
+    tier: 2
+    download:
+      type: geojson
+      url: "https://object.data.gouv.fr/contours-administratifs/2025/geojson/communes-1000m.geojson.gz"
+      format: geojson.gz
+      filename: geo_communes_1000m.geojson.gz
+    target_table: geo_communes_lowres
+    transformer: geo_contours
+    notes: >
+      Résolution 1000m : très léger (~5 Mo), idéal pour la vue France entière
+      dans le navigateur via DuckDB-WASM.
+
+  - id: geo_departements
+    name: "Contours départements 2025 — 50m"
+    category: territoire
+    producer: data.gouv.fr / IGN
+    year: 2025
+    tier: 2
+    download:
+      type: geojson
+      url: "https://object.data.gouv.fr/contours-administratifs/2025/geojson/departements-50m.geojson.gz"
+      format: geojson.gz
+      filename: geo_departements.geojson.gz
+    target_table: geo_departements
+    transformer: geo_contours
+    notes: >
+      101 départements. Utilisé comme overlay de référence sur la carte.
+
+  - id: geo_regions
+    name: "Contours régions 2025 — 50m"
+    category: territoire
+    producer: data.gouv.fr / IGN
+    year: 2025
+    tier: 2
+    download:
+      type: geojson
+      url: "https://object.data.gouv.fr/contours-administratifs/2025/geojson/regions-50m.geojson.gz"
+      format: geojson.gz
+      filename: geo_regions.geojson.gz
+    target_table: geo_regions
+    transformer: geo_contours
+    notes: >
+      18 régions. Overlay léger pour la carte.
+
+  # ---------------------
+  # MAIRES SORTANTS
+  # ---------------------
+  # Rétrogradé en optionnel : analytiquement intéressant (effet notoriété)
+  # mais difficile à fiabiliser sur 35 000 communes. Les données existent
+  # (muni_2026_maires_sortants ci-dessus) mais l'exploitation est complexe.

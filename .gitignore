@@ -1,0 +1,39 @@
+# Données
+data/raw/
+data/processed/
+db/*.duckdb
+db/*.duckdb.wal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Node
+web/node_modules/
+web/.svelte-kit/
+web/build/
+
+# Parquet exports pour le front
+web/static/data/*.parquet
