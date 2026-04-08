@@ -35,5 +35,4 @@ web/node_modules/
 web/.svelte-kit/
 web/build/
 
-# Parquet exports pour le front
-web/static/data/*.parquet
+# Parquet exports pour le front (trackés dans le repo pour simplifier le déploiement)
