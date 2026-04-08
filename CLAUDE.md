@@ -5,16 +5,19 @@
 VoteSocio croise les résultats des élections municipales 2026 avec les indicateurs
 socio-économiques communaux pour cartographier les stéréotypes électoraux et leurs exceptions.
 
+**État actuel** : 259 variables × 34 965 communes, 6.7M valeurs, 27 sources, pipeline complet + analyse + front interactif.
+
 ## Stack technique
 
 - **Langage** : Python 3.11+
 - **BDD** : DuckDB (fichier local `db/votesocio.duckdb`)
 - **Pipeline** : scripts Python séquentiels (`pipeline/`)
-- **Analyse** : pandas, scikit-learn, statsmodels
+- **Analyse** : pandas, scikit-learn, statsmodels, scipy (`analysis/`)
 - **Front** : SvelteKit 2 (static) + DuckDB-WASM (requêtes SQL dans le navigateur)
 - **Carto** : GeoJSON des contours communaux + Maplibre GL
 - **Conteneurisation** : Docker (nginx pour le front, Python pour le pipeline)
 - **CI/CD** : GitHub Actions (lint, tests, build, Docker)
+- **Géo** : shapely + pyproj (calcul superficie Lambert-93)
 
 ## Architecture — principes fondamentaux
 
@@ -27,8 +30,8 @@ de façon générique.
 ### 2. Schéma EAV extensible
 
 La BDD utilise un modèle Entity-Attribute-Value :
-- `communes` : table pivot (code_commune, libellé, département, population, superficie)
-- `variables_meta` : registre de toutes les variables (nom, source, catégorie, type)
+- `communes` : table pivot (code_commune, libellé, département, population, superficie, densité)
+- `variables_meta` : registre de toutes les variables (nom, source, catégorie, type, display, relative_id)
 - `commune_data` : table longue (code_commune, variable_id, value)
 - `commune_data_cat` : idem pour les variables catégorielles
 - `communes_wide` : vue matérialisée pivotée, régénérée automatiquement
@@ -48,6 +51,23 @@ Chaque étape est idempotente et rejouable indépendamment.
 Les résultats électoraux sont stockés dans `commune_data` comme les autres variables
 (score_gauche, score_droite, score_exd, pct_abstention, etc.), ce qui permet de les
 corréler directement avec les variables socio-éco sans traitement spécial.
+
+### 5. Arrondissements PLM
+
+Paris (75101-75120), Lyon (69381-69389), Marseille (13201-13216) sont remappés vers
+leur code commune unique (75056, 69123, 13055) dans tous les transformers via la
+fonction partagée `remap_arrondissements()` dans `pipeline/transformers/__init__.py`.
+
+### 6. Tables d'analyse
+
+Les scripts `analysis/` produisent des tables dans DuckDB, exportées en Parquet pour le front :
+- `correlation_matrix` : corrélations socio-éco × scores électoraux
+- `commune_zscores` : écart de chaque commune à la moyenne de son département
+- `regression_results` + `regression_scaler` : coefficients OLS + stats de normalisation
+- `commune_residuals` : résidus (communes « surprenantes »)
+- `commune_clusters` + `cluster_profiles` : clustering K-Means
+- `pca_loadings` : composantes ACP
+- `decalage_local_national` : gap entre vote municipal et vote national
 
 ## Conventions de code
 
@@ -69,6 +89,7 @@ corréler directement avec les variables socio-éco sans traitement spécial.
 - Un module = un fichier. Pas de packages complexes sauf nécessité.
 - Les transformers custom vont dans `pipeline/transformers/<source_id>.py`
 - Les downloaders custom vont dans `pipeline/downloaders/<type>.py`
+- Les scripts d'analyse vont dans `analysis/<nom>.py`
 
 ### SQL (DuckDB)
 - Mots-clés en MAJUSCULES
@@ -92,37 +113,51 @@ corréler directement avec les variables socio-éco sans traitement spécial.
 ```
 votesocio/
 ├── CLAUDE.md                  ← ce fichier
+├── README.md                  ← présentation projet
 ├── docs/
 │   ├── architecture.md        ← doc d'architecture détaillée
 │   └── telechargements_manuels.md ← instructions pour les fichiers INSEE
 ├── pipeline/
-│   ├── sources.yaml           ← registry déclaratif (38 sources, 4 couches)
+│   ├── sources.yaml           ← registry déclaratif (40+ sources, 4 couches)
 │   ├── run.py                 ← orchestrateur CLI (--source, --step, --list)
 │   ├── config.py              ← chargement config, chemins projet
 │   ├── download.py            ← téléchargement générique (direct_url, insee_zip)
-│   ├── transform.py           ← nettoyage, mapping colonnes, formules
-│   ├── load.py                ← chargement DuckDB + vue communes_wide
+│   ├── transform.py           ← nettoyage, mapping colonnes, formules, remapping PLM
+│   ├── load.py                ← chargement DuckDB + superficie + vue communes_wide
+│   ├── export_parquet.py      ← export DuckDB → Parquet pour le front (17 tables)
 │   ├── downloaders/           ← (réservé pour stratégies custom)
 │   └── transformers/          ← transformers custom par source
+│       ├── __init__.py        ← remap_arrondissements() PLM partagé
 │       ├── elections.py       ← agrégation multi-élections + familles politiques
 │       ├── delinquance.py     ← taux par catégorie d'infraction
 │       ├── dvf.py             ← prix médian au m²
 │       ├── ips.py             ← IPS moyen par commune
+│       ├── bpe.py             ← équipements + normalisation /1000 hab
+│       ├── ic_population.py   ← CSP, immigrés (IRIS → commune)
+│       ├── ic_logement.py     ← HLM, rés.secondaires, vacants
+│       ├── ic_activite.py     ← activité, chômage
+│       ├── ic_menages.py      ← ménages, monoparentales, taille
+│       ├── rp_population.py   ← population, tranches d'âge
+│       ├── rp_diplomes.py     ← niveaux de diplôme
+│       ├── rp_mobilite.py     ← flux résidentiels, sédentarité
 │       ├── qpv.py             ← flag QPV + nb quartiers
 │       ├── zrr.py             ← flag ZRR
 │       ├── rna.py             ← densité associative
 │       ├── annuaire_education.py ← comptage écoles/collèges/lycées
 │       ├── apl.py             ← accessibilité médecins
 │       ├── fibre.py           ← taux couverture FTTH
-│       ├── geo_contours.py    ← parse GeoJSON → géométries communes/dept/régions
-│       └── __init__.py
+│       └── geo_contours.py    ← parse GeoJSON → géométries
+├── analysis/                  ← scripts d'analyse
+│   ├── correlations.py        ← matrice de corrélation
+│   ├── zscores.py             ← z-scores départementaux
+│   ├── regression.py          ← OLS multivariée + résidus
+│   ├── clustering.py          ← K-Means + ACP
+│   └── decalage.py            ← décalage local/national
 ├── tests/                     ← 35 tests (pytest)
-│   ├── test_config.py         ← tests config et sources.yaml
-│   ├── test_download.py       ← tests téléchargement
-│   ├── test_transform.py      ← tests transformation + transformers
-│   └── test_load.py           ← tests schéma DuckDB + chargement
-├── analysis/
-│   └── notebooks/             ← exploration Jupyter (à venir)
+│   ├── test_config.py
+│   ├── test_download.py
+│   ├── test_transform.py
+│   └── test_load.py
 ├── db/
 │   ├── schema.sql             ← DDL de la BDD
 │   └── votesocio.duckdb       ← fichier BDD (gitignored)
@@ -131,16 +166,28 @@ votesocio/
 │   └── processed/             ← fichiers transformés (gitignored)
 ├── web/                       ← front-end SvelteKit
 │   ├── src/
+│   │   ├── app.css            ← design system (dark, typo éditoriale)
 │   │   ├── lib/
-│   │   │   └── db.ts          ← wrapper DuckDB-WASM (initDB, query, queryOne)
-│   │   └── routes/            ← pages SvelteKit
-│   ├── static/data/           ← fichiers Parquet exportés (gitignored)
+│   │   │   ├── db.ts          ← wrapper DuckDB-WASM (initDB, query, queryOne)
+│   │   │   └── components/
+│   │   │       ├── Map.svelte          ← carte choroplèthe Maplibre GL
+│   │   │       ├── CommuneProfile.svelte ← fiche commune complète
+│   │   │       ├── CommuneSearch.svelte  ← recherche autocomplete
+│   │   │       ├── VariableSelector.svelte ← sélecteur par catégorie
+│   │   │       ├── Header.svelte
+│   │   │       └── Footer.svelte
+│   │   └── routes/
+│   │       ├── +page.svelte           ← accueil
+│   │       ├── carte/+page.svelte     ← page carte
+│   │       ├── commune/+page.svelte   ← page fiche commune
+│   │       └── simulateur/+page.svelte ← simulateur régression
+│   ├── static/data/           ← fichiers Parquet exportés (17 tables)
 │   ├── Dockerfile             ← multi-stage: build Node → serve nginx
-│   ├── nginx.conf             ← config nginx (SPA + WASM + Parquet)
+│   ├── nginx.conf
 │   └── package.json
-├── docker-compose.yml         ← services: web, pipeline, export
-├── Dockerfile.pipeline        ← image Python pour le pipeline
-├── .github/workflows/ci.yml  ← CI/CD GitHub Actions
+├── docker-compose.yml
+├── Dockerfile.pipeline
+├── .github/workflows/ci.yml
 ├── requirements.txt
 └── .gitignore
 ```
@@ -154,6 +201,7 @@ votesocio/
 - Ne pas faire de requêtes API sans cache/retry (les serveurs INSEE tombent souvent)
 - Ne pas ignorer les communes DOM-TOM sans le documenter explicitement
 - Ne pas confondre corrélation territoriale et causalité individuelle (ecological fallacy)
+- Ne pas sommer des taux/moyennes lors de l'agrégation d'arrondissements → pondérer ou recalculer
 
 ## Commandes utiles
 
@@ -177,6 +225,23 @@ python -m pipeline.run --source loyers_2025 --force
 # Tests
 python -m pytest tests/ -v
 
+# --- Analyse ---
+
+# Corrélations
+python -m analysis.correlations
+
+# Z-scores départementaux
+python -m analysis.zscores
+
+# Régression multivariée
+python -m analysis.regression
+
+# Clustering + ACP
+python -m analysis.clustering
+
+# Décalage local/national
+python -m analysis.decalage
+
 # --- Front-end ---
 
 # Dev local (hot reload)
@@ -185,7 +250,10 @@ cd web && npm run dev
 # Build statique
 cd web && npm run build
 
-# Export DuckDB → Parquet pour le front
+# Type-check Svelte
+cd web && npm run check
+
+# Export DuckDB → Parquet pour le front (17 tables)
 python -m pipeline.export_parquet
 
 # --- Docker ---
@@ -202,6 +270,9 @@ docker compose --profile tools up pipeline export
 1. Ajouter un bloc dans `pipeline/sources.yaml` avec : id, name, type, url, join_key, variables
 2. Si le format est standard (CSV, Parquet avec colonnes à mapper) → aucun code nécessaire
 3. Si le nettoyage est atypique → créer `pipeline/transformers/<source_id>.py` avec une fonction `transform(df, source) -> df`
-4. Lancer `python -m pipeline.run --source <source_id>`
-5. Les variables sont auto-détectées dans le DataFrame transformé et enregistrées dans `variables_meta`
-6. La vue `communes_wide` se régénère automatiquement
+4. Penser à appeler `remap_arrondissements()` si le transformer custom fait un groupby (PLM)
+5. Lancer `python -m pipeline.run --source <source_id>`
+6. Les variables sont auto-détectées dans le DataFrame transformé et enregistrées dans `variables_meta`
+7. La vue `communes_wide` se régénère automatiquement
+8. Relancer l'analyse (`python -m analysis.correlations`, etc.) pour intégrer les nouvelles variables
+9. Re-exporter les Parquet (`python -m pipeline.export_parquet`)
