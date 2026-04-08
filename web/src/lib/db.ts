@@ -81,9 +81,6 @@ export function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
 		const db = await initDB();
 		const conn = await db.connect();
 
-		// Load parquet extension (bundled in WASM, no network needed)
-		await conn.query("LOAD parquet");
-
 		// Create views only for files that were actually loaded
 		for (const file of loadedFiles) {
 			const viewName = file.replace('.parquet', '');
