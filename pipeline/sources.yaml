@@ -349,23 +349,33 @@ sources:
         name: "Résidences principales — total"
         type: numeric
         unit: ""
+        display: false
 
       - id: rp_prop
         source_col: P21_RP_PROP
         name: "Résidences principales — propriétaires"
         type: numeric
         unit: ""
+        relative_id: pct_proprietaires
 
       - id: rp_loc
         source_col: P21_RP_LOC
         name: "Résidences principales — locataires"
         type: numeric
         unit: ""
+        relative_id: pct_locataires
 
     computed:
       - id: pct_proprietaires
         formula: "rp_prop / rp_total * 100"
         name: "Part des propriétaires"
+        type: numeric
+        unit: "%"
+        category: logement
+
+      - id: pct_locataires
+        formula: "rp_loc / rp_total * 100"
+        name: "Part des locataires"
         type: numeric
         unit: "%"
         category: logement
@@ -394,12 +404,14 @@ sources:
         name: "Chômeurs 15-64 ans"
         type: numeric
         unit: ""
+        relative_id: taux_chomage
 
       - id: actifs_15_64
         source_col: P21_ACT1564
         name: "Actifs 15-64 ans"
         type: numeric
         unit: ""
+        relative_id: taux_chomage
 
     computed:
       - id: taux_chomage
@@ -432,42 +444,49 @@ sources:
         name: "Population 15+ non scolarisée"
         type: numeric
         unit: ""
+        display: false
 
       - id: sans_diplome
         source_col: P21_NSCOL15P_NODIP
         name: "Sans diplôme (15+)"
         type: numeric
         unit: ""
+        relative_id: pct_sans_diplome
 
       - id: diplome_capbep
         source_col: P21_NSCOL15P_CAPBEP
         name: "CAP-BEP"
         type: numeric
         unit: ""
+        relative_id: pct_capbep
 
       - id: diplome_bac
         source_col: P21_NSCOL15P_BAC
         name: "Baccalauréat"
         type: numeric
         unit: ""
+        relative_id: pct_bac
 
       - id: diplome_sup2
         source_col: P21_NSCOL15P_SUP2
         name: "Bac+2"
         type: numeric
         unit: ""
+        relative_id: pct_diplomes_sup
 
       - id: diplome_sup34
         source_col: P21_NSCOL15P_SUP34
         name: "Bac+3/4"
         type: numeric
         unit: ""
+        relative_id: pct_diplomes_sup
 
       - id: diplome_sup5
         source_col: P21_NSCOL15P_SUP5
         name: "Bac+5 et plus"
         type: numeric
         unit: ""
+        relative_id: pct_diplomes_sup
 
     computed:
       - id: pct_diplomes_sup
@@ -480,6 +499,20 @@ sources:
       - id: pct_sans_diplome
         formula: "sans_diplome / pop_15plus_scol * 100"
         name: "Part des sans diplôme"
+        type: numeric
+        unit: "%"
+        category: education
+
+      - id: pct_capbep
+        formula: "diplome_capbep / pop_15plus_scol * 100"
+        name: "Part des CAP-BEP"
+        type: numeric
+        unit: "%"
+        category: education
+
+      - id: pct_bac
+        formula: "diplome_bac / pop_15plus_scol * 100"
+        name: "Part des bacheliers"
         type: numeric
         unit: "%"
         category: education
@@ -514,24 +547,28 @@ sources:
         name: "Population 0-14 ans"
         type: numeric
         unit: ""
+        relative_id: pct_jeunes
 
       - id: pop_6074
         source_col: P22_POP6074
         name: "Population 60-74 ans"
         type: numeric
         unit: ""
+        relative_id: pct_60plus
 
       - id: pop_75plus
         source_col: P22_POP75P
         name: "Population 75 ans et plus"
         type: numeric
         unit: ""
+        relative_id: pct_75plus
 
       - id: pop_etrangere
         source_col: P22_POP_ETR
         name: "Population étrangère"
         type: numeric
         unit: ""
+        relative_id: pct_etrangers
 
     computed:
       - id: pct_60plus
@@ -551,6 +588,13 @@ sources:
       - id: pct_jeunes
         formula: "pop_0014 / population * 100"
         name: "Part des moins de 15 ans"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: pct_75plus
+        formula: "pop_75plus / population * 100"
+        name: "Part des 75 ans et plus"
         type: numeric
         unit: "%"
         category: territoire
@@ -580,60 +624,70 @@ sources:
         name: "Population 15 ans et plus"
         type: numeric
         unit: ""
+        display: false
 
       - id: cs_agriculteurs
         source_col: C21_POP15P_CS1
         name: "Agriculteurs exploitants"
         type: numeric
         unit: ""
+        relative_id: pct_agriculteurs
 
       - id: cs_artisans
         source_col: C21_POP15P_CS2
         name: "Artisans, commerçants, chefs d'entreprise"
         type: numeric
         unit: ""
+        relative_id: pct_artisans
 
       - id: cs_cadres
         source_col: C21_POP15P_CS3
         name: "Cadres et professions intellectuelles supérieures"
         type: numeric
         unit: ""
+        relative_id: pct_cadres
 
       - id: cs_prof_inter
         source_col: C21_POP15P_CS4
         name: "Professions intermédiaires"
         type: numeric
         unit: ""
+        relative_id: pct_prof_inter
 
       - id: cs_employes
         source_col: C21_POP15P_CS5
         name: "Employés"
         type: numeric
         unit: ""
+        relative_id: pct_employes
 
       - id: cs_ouvriers
         source_col: C21_POP15P_CS6
         name: "Ouvriers"
         type: numeric
         unit: ""
+        relative_id: pct_ouvriers
 
       - id: cs_retraites
         source_col: C21_POP15P_CS7
         name: "Retraités"
         type: numeric
         unit: ""
+        relative_id: pct_retraites
 
       - id: cs_autres_inactifs
         source_col: C21_POP15P_CS8
         name: "Autres personnes sans activité professionnelle"
         type: numeric
         unit: ""
+        relative_id: pct_autres_inactifs
 
       - id: pop_immigree
         source_col: P21_POP_IMM
         name: "Population immigrée"
         type: numeric
         unit: ""
+        relative_id: pct_immigres
 
     computed:
       - id: pct_cadres
@@ -663,6 +717,27 @@ sources:
         type: numeric
         unit: "%"
         category: emploi
+
+      - id: pct_artisans
+        formula: "cs_artisans / ic_pop_15plus * 100"
+        name: "Part des artisans-commerçants"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_prof_inter
+        formula: "cs_prof_inter / ic_pop_15plus * 100"
+        name: "Part des professions intermédiaires"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_autres_inactifs
+        formula: "cs_autres_inactifs / ic_pop_15plus * 100"
+        name: "Part des autres inactifs"
+        type: numeric
+        unit: "%"
+        category: territoire
 
       - id: pct_retraites
         formula: "cs_retraites / ic_pop_15plus * 100"
@@ -697,30 +772,35 @@ sources:
         name: "Résidences principales — HLM"
         type: numeric
         unit: ""
+        relative_id: pct_hlm
 
       - id: res_secondaires
         source_col: P21_RSECOCC
         name: "Résidences secondaires et logements occasionnels"
         type: numeric
         unit: ""
+        relative_id: pct_res_secondaires
 
       - id: logements_vacants
         source_col: P21_LOGVAC
         name: "Logements vacants"
         type: numeric
         unit: ""
+        relative_id: pct_logements_vacants
 
       - id: ic_logements_total
         source_col: P21_LOG
         name: "Logements totaux"
         type: numeric
         unit: ""
+        display: false
 
       - id: ic_rp_total
         source_col: P21_RP
         name: "Résidences principales (IC)"
         type: numeric
         unit: ""
+        display: false
 
     computed:
       - id: pct_hlm
@@ -763,30 +843,35 @@ sources:
         name: "Population 15-64 ans"
         type: numeric
         unit: ""
+        display: false
 
       - id: ic_act_1564
         source_col: P21_ACT1564
         name: "Actifs 15-64 ans (IC)"
         type: numeric
         unit: ""
+        relative_id: taux_activite
 
       - id: ic_actocc_1564
         source_col: P21_ACTOCC1564
         name: "Actifs occupés 15-64 ans"
         type: numeric
         unit: ""
+        relative_id: pct_actocc
 
       - id: ic_chom_1564
         source_col: P21_CHOM1564
         name: "Chômeurs 15-64 ans (IC)"
         type: numeric
         unit: ""
+        relative_id: taux_chomage_ic
 
       - id: ic_actocc_tp
         source_col: P21_ACTOCC15P_TP
         name: "Actifs occupés à temps partiel"
         type: numeric
         unit: ""
+        relative_id: pct_temps_partiel
 
     computed:
       - id: taux_activite
@@ -795,6 +880,116 @@ sources:
         type: numeric
         unit: "%"
         category: emploi
+
+      - id: pct_actocc
+        formula: "ic_actocc_1564 / ic_pop_1564 * 100"
+        name: "Taux d'emploi 15-64 ans"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: taux_chomage_ic
+        formula: "ic_chom_1564 / ic_act_1564 * 100"
+        name: "Taux de chômage (IC)"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+      - id: pct_temps_partiel
+        formula: "ic_actocc_tp / ic_actocc_1564 * 100"
+        name: "Part du temps partiel"
+        type: numeric
+        unit: "%"
+        category: emploi
+
+  # ---------------------
+  # IC COUPLES-FAMILLES-MÉNAGES
+  # ---------------------
+
+  - id: ic_menages_2021
+    name: "Base IC 2021 — Couples, familles, ménages (IRIS agrégé)"
+    category: territoire
+    producer: INSEE
+    year: 2021
+    download:
+      type: insee_zip
+      url: "https://www.insee.fr/fr/statistiques/8268828"
+      filename: "base-ic-menages-2021.csv"
+      encoding: utf-8
+      separator: ";"
+    join_key: CODGEO
+    transformer: ic_menages
+    variables:
+      - id: nb_menages
+        source_col: C21_MEN
+        name: "Nombre de ménages"
+        type: numeric
+        unit: ""
+
+      - id: nb_personnes_seules
+        source_col: C21_MENPSEUL
+        name: "Personnes vivant seules"
+        type: numeric
+        unit: ""
+
+      - id: nb_familles_monoparentales
+        source_col: C21_MENFAMMONO
+        name: "Familles monoparentales (ménages)"
+        type: numeric
+        unit: ""
+
+      - id: nb_couples_sans_enfant
+        source_col: C21_MENCOUPSENF
+        name: "Couples sans enfant"
+        type: numeric
+        unit: ""
+
+      - id: nb_couples_avec_enfants
+        source_col: C21_MENCOUPAENF
+        name: "Couples avec enfant(s)"
+        type: numeric
+        unit: ""
+
+      - id: nb_familles_recomposees
+        source_col: C21_FAMRECOMP
+        name: "Familles recomposées"
+        type: numeric
+        unit: ""
+
+      - id: taille_menage
+        source_col: C21_PMEN
+        name: "Population des ménages"
+        type: numeric
+        unit: ""
+
+    computed:
+      - id: pct_personnes_seules
+        formula: "nb_personnes_seules / nb_menages * 100"
+        name: "Part des personnes seules"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: pct_familles_monoparentales
+        formula: "nb_familles_monoparentales / nb_menages * 100"
+        name: "Part des familles monoparentales"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: pct_couples_sans_enfant
+        formula: "nb_couples_sans_enfant / nb_menages * 100"
+        name: "Part des couples sans enfant"
+        type: numeric
+        unit: "%"
+        category: territoire
+
+      - id: taille_moyenne_menage
+        formula: "taille_menage / nb_menages"
+        name: "Taille moyenne des ménages"
+        type: numeric
+        unit: ""
+        category: territoire
 
   # ---------------------
   # CARTE DES LOYERS
@@ -1221,28 +1416,28 @@ sources:
   - id: fiscalite_locale
     name: "Fiscalité directe locale — potentiel fiscal et taux"
     category: revenus
-    producer: DGCL
+    producer: OFGL / DGFiP
     year: 2024
     download:
-      type: custom
-      url: "https://www.collectivites-locales.gouv.fr/finances-locales"
+      type: direct_url
+      url: "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/rei/exports/csv"
+      filename: "rei_fiscalite_2024.csv"
+      format: csv
+      separator: ";"
       notes: >
-        Données de fiscalité locale par commune. Format et URL exacte
-        à déterminer (fichiers Excel mis à jour annuellement par la DGCL).
+        Source : OFGL (data.ofgl.fr), fichier REI. Téléchargé via API,
+        pré-traité en Parquet via script dédié.
     join_key: code_commune
-    transformer: fiscalite
     variables:
-      - id: potentiel_fiscal_par_hab
-        source_col: POT_FISC_HAB
-        name: "Potentiel fiscal par habitant"
-        type: numeric
-        unit: "€/hab."
-
-      - id: taux_taxe_fonciere
-        source_col: TAUX_TFB
+      - id: taux_tfb
         name: "Taux de taxe foncière sur le bâti"
         type: numeric
         unit: "%"
+
+      - id: potentiel_fiscal_hab
+        name: "Potentiel fiscal par habitant (base nette TFB / pop)"
+        type: numeric
+        unit: "€/hab."
     notes: >
       Mesure la richesse de la collectivité (distincte du revenu des ménages).
       Pertinent pour les communes rurales où la fiscalité locale est très visible.

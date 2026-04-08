@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS variables_meta (
     category VARCHAR NOT NULL,
     type VARCHAR NOT NULL DEFAULT 'numeric',  -- numeric | categorical | flag
     unit VARCHAR,
-    year INTEGER
+    year INTEGER,
+    display BOOLEAN NOT NULL DEFAULT TRUE,  -- false = intermédiaire de calcul, masqué du front
+    relative_id VARCHAR  -- pour les absolus : pointe vers la version relative (pct/taux)
 );
 
 -- Valeurs numériques (EAV)

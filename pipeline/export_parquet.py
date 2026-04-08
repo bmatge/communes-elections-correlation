@@ -20,6 +20,16 @@ TABLES = [
     "geo_communes_lowres",
     "geo_departements",
     "geo_regions",
+    # Tables d'analyse
+    "correlation_matrix",
+    "commune_zscores",
+    "regression_results",
+    "commune_residuals",
+    "commune_clusters",
+    "cluster_profiles",
+    "pca_loadings",
+    "regression_scaler",
+    "decalage_local_national",
 ]
 
 DEFAULT_OUTPUT = ROOT_DIR / "web" / "static" / "data"

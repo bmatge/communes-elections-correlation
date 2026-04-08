@@ -172,6 +172,8 @@ def load_variables_meta(con: duckdb.DuckDBPyConnection, source: dict) -> None:
             "type": var.get("type", "numeric"),
             "unit": var.get("unit", ""),
             "year": year,
+            "display": var.get("display", True),
+            "relative_id": var.get("relative_id"),
         })
 
     # Variables calculées (déclarées dans YAML)
@@ -186,6 +188,8 @@ def load_variables_meta(con: duckdb.DuckDBPyConnection, source: dict) -> None:
             "type": comp.get("type", "numeric"),
             "unit": comp.get("unit", ""),
             "year": year,
+            "display": comp.get("display", True),
+            "relative_id": comp.get("relative_id"),
         })
 
     # Variables auto-détectées depuis le DataFrame transformé
@@ -217,12 +221,13 @@ def load_variables_meta(con: duckdb.DuckDBPyConnection, source: dict) -> None:
     for var in all_vars:
         con.execute(
             """INSERT INTO variables_meta
-               (variable_id, source_id, name, description, category, type, unit, year)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (variable_id, source_id, name, description, category, type, unit, year, display, relative_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [
                 var["variable_id"], var["source_id"], var["name"],
                 var["description"], var["category"], var["type"],
                 var["unit"], var["year"],
+                var.get("display", True), var.get("relative_id"),
             ],
         )
 

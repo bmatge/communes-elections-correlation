@@ -39,7 +39,7 @@ def test_schema_creates_tables(tmp_db):
 
 def test_insert_and_query_commune_data(tmp_db):
     # Insérer des données test
-    tmp_db.execute("INSERT INTO variables_meta VALUES ('test_var', 'test_src', 'Test', '', 'test', 'numeric', '', 2021)")
+    tmp_db.execute("INSERT INTO variables_meta (variable_id, source_id, name, description, category, type, unit, year) VALUES ('test_var', 'test_src', 'Test', '', 'test', 'numeric', '', 2021)")
     tmp_db.execute("INSERT INTO commune_data VALUES ('01001', 'test_var', 42.0)")
     tmp_db.execute("INSERT INTO commune_data VALUES ('75056', 'test_var', 99.0)")
 
@@ -56,9 +56,9 @@ def test_primary_key_prevents_duplicates(tmp_db):
 
 
 def test_variables_meta_categories(tmp_db):
-    tmp_db.execute("INSERT INTO variables_meta VALUES ('v1', 's1', 'V1', '', 'revenus', 'numeric', '€', 2021)")
-    tmp_db.execute("INSERT INTO variables_meta VALUES ('v2', 's1', 'V2', '', 'emploi', 'numeric', '%', 2021)")
-    tmp_db.execute("INSERT INTO variables_meta VALUES ('v3', 's2', 'V3', '', 'revenus', 'numeric', '€', 2021)")
+    tmp_db.execute("INSERT INTO variables_meta (variable_id, source_id, name, description, category, type, unit, year) VALUES ('v1', 's1', 'V1', '', 'revenus', 'numeric', '€', 2021)")
+    tmp_db.execute("INSERT INTO variables_meta (variable_id, source_id, name, description, category, type, unit, year) VALUES ('v2', 's1', 'V2', '', 'emploi', 'numeric', '%', 2021)")
+    tmp_db.execute("INSERT INTO variables_meta (variable_id, source_id, name, description, category, type, unit, year) VALUES ('v3', 's2', 'V3', '', 'revenus', 'numeric', '€', 2021)")
 
     result = tmp_db.execute("SELECT category, COUNT(*) AS n FROM variables_meta GROUP BY category ORDER BY category").fetchdf()
     assert len(result) == 2
