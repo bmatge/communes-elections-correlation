@@ -29,6 +29,9 @@ services:
       - "traefik.http.routers.votesocio.tls.options=anssi-strict@file"
       # --- Service ---
       - "traefik.http.services.votesocio.loadbalancer.server.port=80"
+      # --- CSP adaptée pour DuckDB-WASM + Google Fonts ---
+      - "traefik.http.routers.votesocio.middlewares=votesocio-csp"
+      - "traefik.http.middlewares.votesocio-csp.headers.customResponseHeaders.Content-Security-Policy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://analytics.ecosysteme.matge.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' blob: https://analytics.ecosysteme.matge.com; img-src 'self' data: blob:"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 30s
