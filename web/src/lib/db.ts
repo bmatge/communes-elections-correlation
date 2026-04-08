@@ -96,16 +96,7 @@ export function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
 export async function query<T = Record<string, unknown>>(sql: string): Promise<T[]> {
 	const c = await getConnection();
 	const result = await c.query(sql);
-	const rows: T[] = [];
-	const schema = result.schema.fields.map((f) => f.name);
-	for (let i = 0; i < result.numRows; i++) {
-		const obj: Record<string, unknown> = {};
-		for (const col of schema) {
-			obj[col] = result.getChild(col)?.get(i);
-		}
-		rows.push(obj as T);
-	}
-	return rows;
+	return result.toArray().map((row) => row.toJSON() as T);
 }
 
 export async function queryOne<T = Record<string, unknown>>(sql: string): Promise<T | null> {
