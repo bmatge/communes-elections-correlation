@@ -6,28 +6,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&display=swap');
 
 :root {
-	/* Fond */
-	--color-bg: #0c0c0f;
-	--color-surface: #16161a;
-	--color-surface-raised: #1e1e24;
-	--color-border: #2a2a32;
-
-	/* Texte */
-	--color-text: #ececf1;
-	--color-text-muted: #72728a;
-	--color-text-dim: #45455a;
-
-	/* Accents politiques — vifs et assumés */
-	--color-gauche: #ff3b5c;
-	--color-centre: #ffbe0b;
-	--color-droite: #3a86ff;
-	--color-exd: #8338ec;
-	--color-divers: #72728a;
-
-	/* Accent UI */
-	--color-accent: #ffbe0b;
-	--color-accent-text: #0c0c0f;
-
 	/* Layout */
 	--max-width: 1120px;
 	--spacing-xs: 0.25rem;
@@ -41,6 +19,41 @@
 	--font-display: 'Instrument Serif', Georgia, serif;
 	--font-sans: 'Space Grotesk', system-ui, sans-serif;
 	--font-mono: 'Space Mono', ui-monospace, monospace;
+
+	/* Accents politiques — identiques dans les deux thèmes */
+	--color-gauche: #e5243b;
+	--color-centre: #e6a800;
+	--color-droite: #2563eb;
+	--color-exd: #7c3aed;
+	--color-divers: #72728a;
+}
+
+/* ---- Thème sombre (défaut) ---- */
+:root[data-theme='dark'] {
+	--color-bg: #0c0c0f;
+	--color-surface: #16161a;
+	--color-surface-raised: #1e1e24;
+	--color-border: #2a2a32;
+	--color-text: #ececf1;
+	--color-text-muted: #72728a;
+	--color-text-dim: #45455a;
+	--color-accent: #ffbe0b;
+	--color-accent-text: #0c0c0f;
+	--color-shadow: rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Thème clair ---- */
+:root[data-theme='light'] {
+	--color-bg: #f5f5f0;
+	--color-surface: #ffffff;
+	--color-surface-raised: #eeeee8;
+	--color-border: #d4d4cc;
+	--color-text: #1a1a1f;
+	--color-text-muted: #5a5a6e;
+	--color-text-dim: #8a8a9a;
+	--color-accent: #d4940a;
+	--color-accent-text: #ffffff;
+	--color-shadow: rgba(0, 0, 0, 0.08);
 }
 
 /* Reset */

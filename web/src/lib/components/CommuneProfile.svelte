@@ -32,7 +32,7 @@
 	type Residual = { target: string; residual_std: number };
 	type ZScore = { variable_id: string; zscore: number };
 
-	let showRelative = $state(true);
+	let categoryMode: Record<string, 'relative' | 'absolute'> = $state({});
 
 	const CATEGORY_LABELS: Record<string, string> = {
 		revenus: 'Revenus',
@@ -64,31 +64,40 @@
 	let topZscores = $state<ZScore[]>([]);
 	let loading = $state(true);
 
-	// Build a set of relative_ids so we can hide absolutes when their relative counterpart exists
+	// All displayable variables (hide denominators)
+	let displayVars = $derived(variables.filter((v) => v.display !== false));
+
+	// Set of variable_ids that are relative counterparts of some absolute
 	let relativeIds = $derived(new Set(variables.filter((v) => v.relative_id).map((v) => v.relative_id)));
 
-	let filteredVars = $derived(
-		variables.filter((v) => {
-			// Always hide display=false (denominators)
-			if (!v.display) return false;
-			// In relative mode, hide absolutes that have a relative counterpart loaded
-			if (showRelative && v.relative_id && relativeIds.has(v.relative_id)) {
-				// Check the relative version actually exists in our data
-				return !variables.some((rv) => rv.variable_id === v.relative_id);
+	// Check if a category has any relative/absolute pairs
+	function catHasToggle(cat: string): boolean {
+		return displayVars.some((v) => v.category === cat && v.relative_id);
+	}
+
+	function varsForCategory(cat: string): Variable[] {
+		const mode = categoryMode[cat] ?? 'relative';
+		const catVars = displayVars.filter((v) => v.category === cat);
+
+		return catVars.filter((v) => {
+			if (mode === 'relative' && v.relative_id) {
+				// Hide absolute if its relative counterpart exists in data
+				return !catVars.some((rv) => rv.variable_id === v.relative_id);
 			}
-			// In absolute mode, hide the computed percentages that are counterparts
-			if (!showRelative && relativeIds.has(v.variable_id)) {
+			if (mode === 'absolute' && relativeIds.has(v.variable_id)) {
+				// Hide computed percentage
 				return false;
 			}
 			return true;
-		})
-	);
+		});
+	}
 
 	let grouped = $derived(
-		CATEGORY_ORDER.filter((cat) => filteredVars.some((v) => v.category === cat)).map((cat) => ({
+		CATEGORY_ORDER.filter((cat) => displayVars.some((v) => v.category === cat)).map((cat) => ({
 			category: cat,
 			label: CATEGORY_LABELS[cat] || cat,
-			vars: filteredVars.filter((v) => v.category === cat)
+			hasToggle: catHasToggle(cat),
+			vars: varsForCategory(cat)
 		}))
 	);
 
@@ -290,17 +299,29 @@
 		</section>
 	{/if}
 
-	<!-- Toggle absolu / relatif -->
-	<div class="mode-toggle">
-		<button class:active={showRelative} onclick={() => (showRelative = true)}>Relatif (%)</button>
-		<button class:active={!showRelative} onclick={() => (showRelative = false)}>Absolu</button>
-	</div>
-
 	<!-- All variables by category -->
 	<div class="categories">
 		{#each grouped as group}
-			<section class="category">
-				<h2>{group.label}</h2>
+			<details class="category" open={group.category === 'revenus' || group.category === 'emploi'}>
+				<summary>
+					<h2>{group.label}</h2>
+					<span class="cat-count">{group.vars.length}</span>
+					<svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+				</summary>
+				{#if group.hasToggle}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="mode-toggle" onclick={(e) => e.stopPropagation()}>
+						<button
+							class:active={(categoryMode[group.category] ?? 'relative') === 'relative'}
+							onclick={() => (categoryMode[group.category] = 'relative')}
+						>%</button>
+						<button
+							class:active={(categoryMode[group.category] ?? 'relative') === 'absolute'}
+							onclick={() => (categoryMode[group.category] = 'absolute')}
+						>n</button>
+					</div>
+				{/if}
 				<div class="vars-grid">
 					{#each group.vars as v}
 						<div class="var-row">
@@ -328,7 +349,7 @@
 						</div>
 					{/each}
 				</div>
-			</section>
+			</details>
 		{/each}
 	</div>
 {/if}
@@ -410,8 +431,7 @@
 		margin-bottom: var(--spacing-xl);
 	}
 
-	.section h2,
-	.category h2 {
+	.section h2 {
 		font-family: var(--font-mono);
 		font-size: 0.7rem;
 		text-transform: uppercase;
@@ -420,6 +440,65 @@
 		margin-bottom: var(--spacing-md);
 		padding-bottom: var(--spacing-xs);
 		border-bottom: 1px solid var(--color-border);
+	}
+
+	/* Accordéons catégorie */
+	.category {
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.category summary {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: 12px 16px;
+		cursor: pointer;
+		background: var(--color-surface);
+		transition: background 0.12s;
+		list-style: none;
+	}
+
+	.category summary::-webkit-details-marker { display: none; }
+
+	.category summary:hover {
+		background: var(--color-surface-raised);
+	}
+
+	.category summary h2 {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: var(--color-accent);
+		margin: 0;
+		padding: 0;
+		border: none;
+		flex: 1;
+	}
+
+	.cat-count {
+		font-family: var(--font-mono);
+		font-size: 0.6rem;
+		color: var(--color-text-dim);
+		background: var(--color-surface-raised);
+		padding: 1px 7px;
+		border-radius: 99px;
+	}
+
+	.chevron {
+		color: var(--color-text-dim);
+		transition: transform 0.2s;
+		flex-shrink: 0;
+	}
+
+	.category[open] > summary .chevron {
+		transform: rotate(180deg);
+	}
+
+	.category > .vars-grid {
+		padding: 0 16px 16px;
 	}
 
 	.section-desc {
@@ -583,29 +662,29 @@
 		color: var(--color-gauche);
 	}
 
-	/* Toggle absolu / relatif */
+	/* Toggle absolu / relatif (dans l'accordéon) */
 	.mode-toggle {
 		display: flex;
-		gap: 2px;
-		background: var(--color-surface);
+		gap: 1px;
+		background: var(--color-surface-raised);
 		border: 1px solid var(--color-border);
-		border-radius: 6px;
-		padding: 2px;
+		border-radius: 4px;
+		padding: 1px;
 		width: fit-content;
+		margin: 8px 16px 0;
 	}
 
 	.mode-toggle button {
 		background: none;
 		border: none;
 		font-family: var(--font-mono);
-		font-size: 0.7rem;
-		color: var(--color-text-muted);
-		padding: 6px 14px;
-		border-radius: 4px;
+		font-size: 0.6rem;
+		color: var(--color-text-dim);
+		padding: 3px 10px;
+		border-radius: 3px;
 		cursor: pointer;
 		transition: all 0.15s;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		font-weight: 700;
 	}
 
 	.mode-toggle button.active {
