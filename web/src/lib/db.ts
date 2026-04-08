@@ -88,7 +88,7 @@ export function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
 		// Create views only for files that were actually loaded
 		for (const file of loadedFiles) {
 			const viewName = file.replace('.parquet', '');
-			await conn.query(`CREATE VIEW IF NOT EXISTS ${viewName} AS SELECT * FROM '${file}'`);
+			await conn.query(`CREATE VIEW IF NOT EXISTS ${viewName} AS SELECT * FROM read_parquet('${file}')`);
 		}
 
 		return conn;
