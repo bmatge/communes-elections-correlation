@@ -17,32 +17,16 @@ services:
       context: ./web
       dockerfile: Dockerfile
     restart: unless-stopped
-    volumes:
-      - parquet-data:/usr/share/nginx/html/data:ro
     networks:
       - ecosystem-network
     labels:
       - "traefik.enable=true"
-      # --- HTTP Router ---
+      # --- Router HTTPS ---
       - "traefik.http.routers.votesocio.rule=Host(`macommune.matge.com`)"
       - "traefik.http.routers.votesocio.entrypoints=websecure"
-      - "traefik.http.routers.votesocio.tls=true"
       - "traefik.http.routers.votesocio.tls.certresolver=letsencrypt"
       # --- Service ---
       - "traefik.http.services.votesocio.loadbalancer.server.port=80"
-      # --- Redirect HTTP → HTTPS ---
-      - "traefik.http.routers.votesocio-http.rule=Host(`macommune.matge.com`)"
-      - "traefik.http.routers.votesocio-http.entrypoints=web"
-      - "traefik.http.routers.votesocio-http.middlewares=votesocio-https-redirect"
-      - "traefik.http.middlewares.votesocio-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.votesocio-https-redirect.redirectscheme.permanent=true"
-      # --- Headers sécurité ---
-      - "traefik.http.routers.votesocio.middlewares=votesocio-headers"
-      - "traefik.http.middlewares.votesocio-headers.headers.stsSeconds=31536000"
-      - "traefik.http.middlewares.votesocio-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.votesocio-headers.headers.forceSTSHeader=true"
-      - "traefik.http.middlewares.votesocio-headers.headers.contentTypeNosniff=true"
-      - "traefik.http.middlewares.votesocio-headers.headers.frameDeny=true"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/"]
       interval: 30s
@@ -73,15 +57,13 @@ services:
     command: python -m pipeline.export_parquet
     volumes:
       - db-data:/app/db:ro
-      - parquet-data:/app/web/static/data
+      - ./web/static/data:/app/web/static/data
     networks:
       - ecosystem-network
     profiles:
       - tools
 
 volumes:
-  parquet-data:
-    driver: local
   pipeline-data:
     driver: local
   db-data:
