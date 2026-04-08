@@ -81,6 +81,10 @@ export function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
 		const db = await initDB();
 		const conn = await db.connect();
 
+		// Disable autoloading extensions from the network
+		await conn.query("SET autoinstall_known_extensions=false");
+		await conn.query("SET autoload_known_extensions=false");
+
 		// Create views only for files that were actually loaded
 		for (const file of loadedFiles) {
 			const viewName = file.replace('.parquet', '');
