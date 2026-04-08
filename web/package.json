@@ -22,6 +22,9 @@
 	},
 	"dependencies": {
 		"@duckdb/duckdb-wasm": "^1.33.1-dev42.0",
+		"@fontsource/instrument-serif": "^5.2.8",
+		"@fontsource/space-grotesk": "^5.2.10",
+		"@fontsource/space-mono": "^5.2.9",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"maplibre-gl": "^5.22.0"
 	}
