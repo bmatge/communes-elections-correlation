@@ -81,14 +81,13 @@ export function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
 		const db = await initDB();
 		const conn = await db.connect();
 
-		// Disable autoloading extensions from the network
-		await conn.query("SET autoinstall_known_extensions=false");
-		await conn.query("SET autoload_known_extensions=false");
+		// Load parquet extension (bundled in WASM, no network needed)
+		await conn.query("LOAD parquet");
 
 		// Create views only for files that were actually loaded
 		for (const file of loadedFiles) {
 			const viewName = file.replace('.parquet', '');
-			await conn.query(`CREATE VIEW IF NOT EXISTS ${viewName} AS SELECT * FROM read_parquet('${file}')`);
+			await conn.query(`CREATE VIEW IF NOT EXISTS ${viewName} AS SELECT * FROM '${file}'`);
 		}
 
 		return conn;
