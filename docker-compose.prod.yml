@@ -1,0 +1,92 @@
+# =============================================================================
+# VoteSocio — Docker Compose Production
+# =============================================================================
+# Déploiement derrière Traefik sur ecosystem-network
+# FQDN : macommune.matge.com
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml --profile tools run export
+# =============================================================================
+
+services:
+  # --- Front-end (nginx + SvelteKit static) ---
+  web:
+    image: ghcr.io/bmatge/votesocio-web:${TAG:-latest}
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - parquet-data:/usr/share/nginx/html/data:ro
+    networks:
+      - ecosystem-network
+    labels:
+      - "traefik.enable=true"
+      # --- HTTP Router ---
+      - "traefik.http.routers.votesocio.rule=Host(`macommune.matge.com`)"
+      - "traefik.http.routers.votesocio.entrypoints=websecure"
+      - "traefik.http.routers.votesocio.tls=true"
+      - "traefik.http.routers.votesocio.tls.certresolver=letsencrypt"
+      # --- Service ---
+      - "traefik.http.services.votesocio.loadbalancer.server.port=80"
+      # --- Redirect HTTP → HTTPS ---
+      - "traefik.http.routers.votesocio-http.rule=Host(`macommune.matge.com`)"
+      - "traefik.http.routers.votesocio-http.entrypoints=web"
+      - "traefik.http.routers.votesocio-http.middlewares=votesocio-https-redirect"
+      - "traefik.http.middlewares.votesocio-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.votesocio-https-redirect.redirectscheme.permanent=true"
+      # --- Headers sécurité ---
+      - "traefik.http.routers.votesocio.middlewares=votesocio-headers"
+      - "traefik.http.middlewares.votesocio-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.votesocio-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.votesocio-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.votesocio-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.votesocio-headers.headers.frameDeny=true"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+
+  # --- Pipeline de données ---
+  pipeline:
+    image: ghcr.io/bmatge/votesocio-pipeline:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    volumes:
+      - pipeline-data:/app/data
+      - db-data:/app/db
+    networks:
+      - ecosystem-network
+    profiles:
+      - tools
+
+  # --- Export Parquet (DuckDB → fichiers pour le front) ---
+  export:
+    image: ghcr.io/bmatge/votesocio-pipeline:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    command: python -m pipeline.export_parquet
+    volumes:
+      - db-data:/app/db:ro
+      - parquet-data:/app/web/static/data
+    networks:
+      - ecosystem-network
+    profiles:
+      - tools
+
+volumes:
+  parquet-data:
+    driver: local
+  pipeline-data:
+    driver: local
+  db-data:
+    driver: local
+
+networks:
+  ecosystem-network:
+    external: true
