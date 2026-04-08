@@ -6,19 +6,21 @@
 	type Variable = { variable_id: string; name: string; category: string };
 
 	let variables = $state<Variable[]>([]);
-	let grouped = $derived(groupByCategory(variables));
+	let analysisVars = $state<Variable[]>([]);
+	let grouped = $derived(groupByCategory([...variables, ...analysisVars]));
 
 	const CATEGORY_LABELS: Record<string, string> = {
+		electoral: 'Electoral',
 		revenus: 'Revenus',
 		emploi: 'Emploi',
 		logement: 'Logement',
-		education: 'Éducation',
+		education: 'Education',
 		territoire: 'Territoire',
-		securite: 'Sécurité',
-		sante: 'Santé',
+		securite: 'Securite',
+		sante: 'Sante',
 		vie_locale: 'Vie locale',
 		transport: 'Transport',
-		electoral: 'Électoral'
+		analyse: 'Analyse'
 	};
 
 	const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS);
@@ -38,6 +40,32 @@
 			"SELECT variable_id, name, category FROM variables_meta WHERE type = 'numeric' ORDER BY category, name"
 		).then((rows) => {
 			variables = rows;
+		});
+
+		// Add analysis-derived variables (not in variables_meta)
+		Promise.all([
+			query<{ target: string }>('SELECT DISTINCT target FROM commune_residuals'),
+			query<{ variable_id: string }>('SELECT DISTINCT variable_id FROM commune_zscores LIMIT 20')
+		]).then(([residuals, zscores]) => {
+			const extra: Variable[] = [];
+			for (const r of residuals) {
+				extra.push({
+					variable_id: `residual_${r.target}`,
+					name: `Residu ${r.target.replace(/_/g, ' ')}`,
+					category: 'analyse'
+				});
+			}
+			for (const z of zscores) {
+				extra.push({
+					variable_id: `zscore_${z.variable_id}`,
+					name: `Z-score ${z.variable_id.replace(/_/g, ' ')}`,
+					category: 'analyse'
+				});
+			}
+			extra.push({ variable_id: 'cluster_id', name: 'Cluster commune', category: 'analyse' });
+			analysisVars = extra;
+		}).catch(() => {
+			// Analysis tables not available yet
 		});
 	});
 </script>

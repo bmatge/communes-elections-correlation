@@ -4,7 +4,9 @@
 	const nav = [
 		{ href: '/carte', label: 'Carte' },
 		{ href: '/commune', label: 'Communes' },
-		{ href: '/simulateur', label: 'Simulateur' }
+		{ href: '/surprises', label: 'Surprises' },
+		{ href: '/simulateur', label: 'Simulateur' },
+		{ href: '/methode', label: 'Méthode' }
 	];
 </script>
 

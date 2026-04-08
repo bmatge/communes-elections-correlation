@@ -17,17 +17,50 @@
 	let loading = $state(true);
 	let popup: maplibregl.Popup | null = null;
 	let communesGeoJSON: GeoJSON.FeatureCollection | null = null;
+	let legendMin = $state('');
+	let legendMax = $state('');
+	let legendLabel = $state('');
+	let legendPalette = $state<string[]>([]);
 
-	function getColorStops(min: number, max: number): [number, string][] {
+	type PaletteId = 'gauche' | 'droite' | 'exd' | 'centre' | 'abstention' | 'neutral' | 'diverging';
+
+	const PALETTES: Record<PaletteId, string[]> = {
+		gauche: ['#1a1a2e', '#5c1528', '#a12040', '#e02e4e', '#ff3b5c'],
+		droite: ['#1a1a2e', '#1c3058', '#1e5090', '#2970c8', '#3a86ff'],
+		exd: ['#1a1a2e', '#2d1654', '#4e2388', '#6f30bc', '#8338ec'],
+		centre: ['#1a1a2e', '#3d2e00', '#7a5c00', '#b88d00', '#ffbe0b'],
+		abstention: ['#1a3a1a', '#2d5a2d', '#606040', '#9a7040', '#d44020'],
+		neutral: ['#1a1a2e', '#2563eb', '#60a5fa', '#fbbf24', '#ffbe0b'],
+		diverging: ['#3a86ff', '#8090a0', '#2a2a32', '#a05080', '#ff3b5c']
+	};
+
+	function detectPalette(varId: string): PaletteId {
+		if (varId.includes('score_gauche')) return 'gauche';
+		if (varId.includes('score_extreme_droite')) return 'exd';
+		if (varId.includes('score_droite')) return 'droite';
+		if (varId.includes('score_centre')) return 'centre';
+		if (varId.includes('abstention')) return 'abstention';
+		if (varId.includes('residual')) return 'diverging';
+		return 'neutral';
+	}
+
+	function getColorStops(min: number, max: number, palette: string[]): [number, string][] {
 		const range = max - min || 1;
-		return [
-			[min, '#1a1a2e'],
-			[min + range * 0.2, '#2563eb'],
-			[min + range * 0.4, '#60a5fa'],
-			[min + range * 0.6, '#fbbf24'],
-			[min + range * 0.8, '#f59e0b'],
-			[max, '#ffbe0b']
-		];
+		const n = palette.length;
+		return palette.map((color, i) => [min + (range * i) / (n - 1), color] as [number, string]);
+	}
+
+	function formatLegendValue(val: number, varId: string): string {
+		if (varId.includes('pct_') || varId.includes('score_') || varId.includes('taux_')) {
+			return val.toFixed(1) + '%';
+		}
+		if (varId.includes('revenu') || varId.includes('loyer') || varId.includes('prix')) {
+			return val.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + '€';
+		}
+		if (varId.includes('residual')) {
+			return (val >= 0 ? '+' : '') + val.toFixed(1) + 'σ';
+		}
+		return val.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
 	}
 
 	async function loadGeoJSON(): Promise<GeoJSON.FeatureCollection> {
@@ -36,8 +69,6 @@
 			nom: string;
 			geometry: string;
 		}>('SELECT code_commune, nom, geometry FROM geo_communes_lowres');
-
-		console.log(`[Map] ${rows.length} communes chargées`);
 
 		const features: GeoJSON.Feature[] = rows.map((r) => ({
 			type: 'Feature' as const,
@@ -69,11 +100,22 @@
 	async function updateChoropleth(varId: string) {
 		if (!map || !communesGeoJSON) return;
 
-		const rows = await query<{ code_commune: string; value: number }>(
-			`SELECT code_commune, value FROM commune_data WHERE variable_id = '${varId}'`
-		);
+		// Detect data source — commune_data or analysis tables
+		let sql: string;
+		if (varId.startsWith('residual_')) {
+			const target = varId.replace('residual_', '');
+			sql = `SELECT code_commune, residual_std AS value FROM commune_residuals WHERE target = '${target}'`;
+		} else if (varId === 'cluster_id') {
+			sql = `SELECT code_commune, CAST(cluster_id AS DOUBLE) AS value FROM commune_clusters`;
+		} else if (varId.startsWith('zscore_')) {
+			const target = varId.replace('zscore_', '');
+			sql = `SELECT code_commune, zscore AS value FROM commune_zscores WHERE variable_id = '${target}'`;
+		} else {
+			sql = `SELECT code_commune, value FROM commune_data WHERE variable_id = '${varId}'`;
+		}
+
+		const rows = await query<{ code_commune: string; value: number }>(sql);
 		const values = new Map(rows.map((r) => [r.code_commune, r.value]));
-		console.log(`[Map] ${varId}: ${values.size} valeurs`);
 
 		let min = Infinity;
 		let max = -Infinity;
@@ -92,23 +134,34 @@
 		const source = map.getSource('communes') as maplibregl.GeoJSONSource;
 		source.setData(communesGeoJSON);
 
-		if (min === Infinity) {
-			console.warn(`[Map] Aucune valeur pour ${varId}`);
-			return;
+		if (min === Infinity) return;
+
+		// For diverging palettes (residuals, z-scores), center on 0
+		if (varId.includes('residual') || varId.includes('zscore')) {
+			const absMax = Math.max(Math.abs(min), Math.abs(max));
+			min = -absMax;
+			max = absMax;
 		}
 
-		console.log(`[Map] ${varId}: min=${min}, max=${max}`);
+		const paletteId = detectPalette(varId);
+		const palette = PALETTES[paletteId];
+		const stops = getColorStops(min, max, palette);
 
-		const stops = getColorStops(min, max);
 		map.setPaintProperty('communes-fill', 'fill-color', [
 			'interpolate',
 			['linear'],
 			['coalesce', ['get', 'value'], min],
 			...stops.flat()
 		]);
+
+		// Update legend
+		legendMin = formatLegendValue(min, varId);
+		legendMax = formatLegendValue(max, varId);
+		legendPalette = palette;
+		legendLabel = varId.replace(/_/g, ' ');
 	}
 
-	onMount(async () => {
+	onMount(() => {
 		map = new maplibregl.Map({
 			container: mapContainer,
 			style: {
@@ -136,7 +189,6 @@
 			const [geo, deptsGeo] = await Promise.all([loadGeoJSON(), loadDepartements()]);
 			communesGeoJSON = geo;
 
-			// Communes layer
 			map!.addSource('communes', { type: 'geojson', data: communesGeoJSON });
 			map!.addLayer({
 				id: 'communes-fill',
@@ -157,7 +209,6 @@
 				}
 			});
 
-			// Départements overlay
 			map!.addSource('departements', { type: 'geojson', data: deptsGeo });
 			map!.addLayer({
 				id: 'departements-line',
@@ -169,7 +220,6 @@
 				}
 			});
 
-			// Interactions
 			map!.on('mousemove', 'communes-fill', (e) => {
 				map!.getCanvas().style.cursor = 'pointer';
 				const feat = e.features?.[0];
@@ -177,7 +227,7 @@
 				const val = feat.properties.value;
 				const display =
 					val !== null && val !== undefined && val !== 'null'
-						? Number(val).toLocaleString('fr-FR')
+						? formatLegendValue(Number(val), variableId)
 						: '—';
 				if (popup) popup.remove();
 				popup = new maplibregl.Popup({ closeButton: false, offset: 10 })
@@ -206,6 +256,7 @@
 
 			await updateChoropleth(variableId);
 			loading = false;
+			setTimeout(() => map?.resize(), 50);
 		});
 
 		return () => {
@@ -213,7 +264,6 @@
 		};
 	});
 
-	// React to variable changes
 	$effect(() => {
 		if (map && !loading) {
 			updateChoropleth(variableId);
@@ -224,10 +274,17 @@
 <div class="map-wrapper">
 	{#if loading}
 		<div class="loader">
-			<span class="loader-text">Chargement des géométries…</span>
+			<span class="loader-text">Chargement des geometries...</span>
 		</div>
 	{/if}
 	<div bind:this={mapContainer} class="map"></div>
+	{#if legendPalette.length > 0}
+		<div class="legend">
+			<span class="legend-val">{legendMin}</span>
+			<div class="legend-gradient" style:background="linear-gradient(to right, {legendPalette.join(', ')})"></div>
+			<span class="legend-val">{legendMax}</span>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -241,8 +298,8 @@
 	}
 
 	.map {
-		width: 100%;
-		height: 100%;
+		position: absolute;
+		inset: 0;
 	}
 
 	.loader {
@@ -259,6 +316,33 @@
 		font-family: var(--font-mono);
 		font-size: 0.8rem;
 		color: var(--color-text-muted);
+	}
+
+	.legend {
+		position: absolute;
+		bottom: 16px;
+		left: 16px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		padding: 8px 12px;
+		z-index: 5;
+	}
+
+	.legend-gradient {
+		width: 120px;
+		height: 10px;
+		border-radius: 3px;
+	}
+
+	.legend-val {
+		font-family: var(--font-mono);
+		font-size: 0.65rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
 	}
 
 	/* Override maplibre popup */

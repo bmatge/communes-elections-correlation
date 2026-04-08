@@ -7,8 +7,17 @@ const PARQUET_FILES = [
 	'geo_communes.parquet',
 	'geo_communes_lowres.parquet',
 	'geo_departements.parquet',
-	'geo_regions.parquet'
-	// elections_raw : ajouté quand la table sera peuplée
+	'geo_regions.parquet',
+	// Tables d'analyse
+	'correlation_matrix.parquet',
+	'commune_zscores.parquet',
+	'regression_results.parquet',
+	'commune_residuals.parquet',
+	'commune_clusters.parquet',
+	'cluster_profiles.parquet',
+	'pca_loadings.parquet',
+	'regression_scaler.parquet',
+	'decalage_local_national.parquet'
 ];
 
 // Singleton promises to avoid race conditions
