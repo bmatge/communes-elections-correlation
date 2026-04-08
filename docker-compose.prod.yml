@@ -24,7 +24,9 @@ services:
       # --- Router HTTPS ---
       - "traefik.http.routers.votesocio.rule=Host(`macommune.matge.com`)"
       - "traefik.http.routers.votesocio.entrypoints=websecure"
+      - "traefik.http.routers.votesocio.tls=true"
       - "traefik.http.routers.votesocio.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.votesocio.tls.options=anssi-strict@file"
       # --- Service ---
       - "traefik.http.services.votesocio.loadbalancer.server.port=80"
     healthcheck:
